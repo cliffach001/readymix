@@ -10,8 +10,9 @@ import {
 } from "@/lib/supabase-service";
 import type { PlantRow, InputDataRecord } from "@/lib/supabase-service";
 import type { LaporanMingguan } from "@/lib/data";
+import Link from "next/link";
 import ProtectedRoute from "@/components/ProtectedRoute";
-import { ArrowLeft, Calendar, Package, DollarSign } from "lucide-react";
+import { ArrowLeft, Calendar, Package, DollarSign, Plus } from "lucide-react";
 
 function formatCurrency(val: number) {
   return val.toLocaleString("id-ID");
@@ -167,13 +168,22 @@ export default function PlantDetailPage() {
 
         {/* ── Tabel Data Inputan ── */}
         <div className="card">
-          <div className="card-header">
-            <h3 className="text-base font-semibold text-gray-900">
-              Data Penjualan
-            </h3>
-            <p className="text-xs text-gray-500">
-              {inputData.length} transaksi
-            </p>
+          <div className="card-header flex items-center justify-between">
+            <div>
+              <h3 className="text-base font-semibold text-gray-900">
+                Data Penjualan
+              </h3>
+              <p className="text-xs text-gray-500">
+                {inputData.length} transaksi
+              </p>
+            </div>
+            <Link
+              href={`/input-data`}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#FF6600] text-white text-xs sm:text-sm font-medium hover:bg-orange-700 transition-all shadow-sm"
+            >
+              <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <span className="hidden sm:inline">Input Data</span>
+            </Link>
           </div>
           <div className="card-body p-0 overflow-x-auto">
             <table className="w-full text-sm">
