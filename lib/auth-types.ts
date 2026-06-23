@@ -4,7 +4,7 @@
 
 export type Role = "admin" | "manager" | "marketing" | "viewer";
 
-export type RouteKey = "dashboard" | "laporan-mingguan" | "input-data" | "kelola-pengguna";
+export type RouteKey = "dashboard" | "laporan-mingguan" | "kelola-pengguna";
 
 export interface AuthUser {
   role: Role;

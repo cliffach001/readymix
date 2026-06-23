@@ -8,7 +8,6 @@ import { cn } from "@/lib/utils";
 import {
   LayoutDashboard,
   ClipboardList,
-  Database,
   LogOut,
   User,
   ChevronDown,
@@ -30,11 +29,6 @@ const menuItems = [
     title: "Laporan Mingguan",
     href: "/laporan-mingguan",
     icon: ClipboardList,
-  },
-  {
-    title: "Input Data",
-    href: "/input-data",
-    icon: Database,
   },
   {
     title: "Kelola Pengguna",

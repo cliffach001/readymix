@@ -8,7 +8,6 @@ import type { Role, RouteKey } from "./auth-types";
 export const ROUTE_PERMISSIONS: Record<RouteKey, Role[]> = {
   dashboard: ["admin", "manager", "marketing", "viewer"],
   "laporan-mingguan": ["admin", "manager", "marketing"],
-  "input-data": ["admin", "manager", "marketing"],
   "kelola-pengguna": ["admin"],
 };
 
