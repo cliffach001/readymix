@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { fetchRKAP } from "@/lib/supabase-service";
+import { fetchRKAPKumulatif } from "@/lib/supabase-service";
 import type { RKAPRow } from "@/lib/supabase-service";
 
 const COLORS = [
@@ -11,6 +11,11 @@ const COLORS = [
   { bar: "bg-amber-500", text: "text-amber-700", bg: "bg-amber-100" },
   { bar: "bg-violet-500", text: "text-violet-700", bg: "bg-violet-100" },
   { bar: "bg-pink-500", text: "text-pink-700", bg: "bg-pink-100" },
+];
+
+const MONTH_NAMES = [
+  "", "Jan", "Feb", "Mar", "Apr", "Mei", "Jun",
+  "Jul", "Agu", "Sep", "Okt", "Nov", "Des",
 ];
 
 function ProgressBar({
@@ -32,22 +37,31 @@ function ProgressBar({
   );
 }
 
-export default function CapaianRKAPChart() {
+interface Props {
+  year: number;
+  month: number;
+  plantCode?: string;
+}
+
+export default function CapaianRKAPChart({ year, month, plantCode }: Props) {
   const [data, setData] = useState<RKAPRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchRKAP()
+    setLoading(true);
+    fetchRKAPKumulatif(year, month)
       .then(setData)
       .catch(console.error)
       .finally(() => setLoading(false));
-  }, []);
+  }, [year, month]);
 
   if (loading) {
     return (
       <div className="card">
         <div className="card-header">
-          <h3 className="text-base font-semibold text-gray-900">Capaian terhadap RKAP</h3>
+          <h3 className="text-base font-semibold text-gray-900">
+            Capaian terhadap RKAP
+          </h3>
         </div>
         <div className="card-body flex items-center justify-center h-[200px]">
           <p className="text-sm text-gray-400">Memuat data...</p>
@@ -63,11 +77,11 @@ export default function CapaianRKAPChart() {
           Capaian terhadap RKAP
         </h3>
         <p className="text-sm text-gray-500 mt-0.5">
-          Persentase realisasi produksi terhadap target tahunan (RKAP)
+          Realisasi s.d. {MONTH_NAMES[month]} {year}
         </p>
       </div>
       <div className="card-body space-y-6">
-        {data.map((item, index) => {
+        {(plantCode ? data.filter((d) => d.plant === plantCode) : data).map((item, index) => {
           const color = COLORS[index % COLORS.length];
           const remaining = item.target - item.realisasi;
           const remainingFormatted =

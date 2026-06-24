@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { canAccess, ROLE_LABELS } from "@/lib/auth-config";
 import type { RouteKey } from "@/lib/auth-types";
+import ErrorBoundary from "@/components/ErrorBoundary";
 
 interface ProtectedRouteProps {
   route: RouteKey;
@@ -47,5 +48,5 @@ export default function ProtectedRoute({
     );
   }
 
-  return <>{children}</>;
+  return <ErrorBoundary name={route}>{children}</ErrorBoundary>;
 }

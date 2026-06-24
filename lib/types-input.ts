@@ -10,5 +10,6 @@ export interface InputData {
   jumlahHarga: number; // volume * hargaSatuan
   sewaCP: number;
   totalHarga: number; // jumlahHarga + sewaCP
+  keterangan: string;
   createdAt: string; // ISO timestamp
 }

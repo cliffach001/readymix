@@ -8,7 +8,9 @@ import type { Role, RouteKey } from "./auth-types";
 export const ROUTE_PERMISSIONS: Record<RouteKey, Role[]> = {
   dashboard: ["admin", "manager", "marketing", "viewer"],
   "laporan-mingguan": ["admin", "manager", "marketing"],
+  "rkap": ["admin", "manager", "marketing"],
   "kelola-pengguna": ["admin"],
+  presentasi: ["admin", "manager", "marketing"],
 };
 
 /** Metadata untuk ditampilkan di LoginScreen & Sidebar */

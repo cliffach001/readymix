@@ -25,6 +25,7 @@ export default function TabelRiwayatInput({
         d.namaPelanggan.toLowerCase().includes(q) ||
         d.uraianPekerjaan.toLowerCase().includes(q) ||
         d.type.toLowerCase().includes(q) ||
+        d.keterangan.toLowerCase().includes(q) ||
         d.tanggal.includes(q)
     );
   }, [data, search]);
@@ -111,6 +112,9 @@ export default function TabelRiwayatInput({
               <th className="text-left px-3 py-2.5 font-semibold text-gray-600 text-xs uppercase">
                 Type
               </th>
+              <th className="text-left px-3 py-2.5 font-semibold text-gray-600 text-xs uppercase">
+                Keterangan
+              </th>
               <th className="text-right px-3 py-2.5 font-semibold text-gray-600 text-xs uppercase">
                 Vol (m³)
               </th>
@@ -151,6 +155,9 @@ export default function TabelRiwayatInput({
                 </td>
                 <td className="px-3 py-2.5 text-gray-600 whitespace-nowrap">
                   {item.type || "—"}
+                </td>
+                <td className="px-3 py-2.5 text-gray-500 max-w-[150px] truncate text-xs">
+                  {item.keterangan || "—"}
                 </td>
                 <td className="px-3 py-2.5 text-right tabular-nums text-gray-700 font-medium">
                   {item.volume.toLocaleString("id-ID")}
@@ -194,7 +201,7 @@ export default function TabelRiwayatInput({
           <tfoot>
             <tr className="border-t-2 border-gray-200 bg-gray-50/80">
               <td
-                colSpan={5}
+                colSpan={6}
                 className="px-3 py-3 font-bold text-gray-700 text-xs uppercase text-left"
               >
                 Total

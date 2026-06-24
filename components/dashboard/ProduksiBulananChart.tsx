@@ -11,7 +11,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
-import { fetchProduksiBulanan } from "@/lib/supabase-service";
+import { fetchInputBulanan } from "@/lib/supabase-service";
 import type { ProduksiBulananRow } from "@/lib/supabase-service";
 
 const COLORS = [
@@ -32,16 +32,44 @@ const PLANTS = [
   { key: "masamba", label: "Masamba", color: COLORS[5] },
 ];
 
-export default function ProduksiBulananChart() {
-  const [data, setData] = useState<ProduksiBulananRow[]>([]);
+const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
+
+interface Props {
+  month: number;
+  year: number;
+  plantCode?: string;
+}
+
+export default function ProduksiBulananChart({ month, year, plantCode }: Props) {
+  const [allData, setAllData] = useState<ProduksiBulananRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchProduksiBulanan()
-      .then(setData)
+    setLoading(true);
+    fetchInputBulanan()
+      .then(setAllData)
       .catch(console.error)
       .finally(() => setLoading(false));
   }, []);
+
+  // Buat array lengkap Jan s.d. selected month, isi 0 untuk bulan tanpa data
+  const monthIndex = month - 1; // 0-based (Jan=0, Feb=1, ...)
+  const chartData: ProduksiBulananRow[] = [];
+  for (let i = 0; i <= monthIndex; i++) {
+    const bulan = MONTH_NAMES[i];
+    const existing = allData.find((r) => r.bulan === bulan);
+    chartData.push(
+      existing ?? {
+        bulan,
+        pangkep: 0,
+        makassar: 0,
+        pinrang: 0,
+        kendari: 0,
+        toraja: 0,
+        masamba: 0,
+      }
+    );
+  }
 
   if (loading) {
     return (
@@ -60,17 +88,17 @@ export default function ProduksiBulananChart() {
     <div className="card">
       <div className="card-header">
         <h3 className="text-base font-semibold text-gray-900">
-          Produksi Bulanan
+          Produksi Bulanan {year}
         </h3>
         <p className="text-sm text-gray-500 mt-0.5">
-          Volume produksi per bulan (m³)
+          Volume produksi per bulan — s.d. {MONTH_NAMES[month - 1]} {year}
         </p>
       </div>
       <div className="card-body">
         <div className="h-[350px]">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
-              data={data}
+              data={chartData}
               margin={{ top: 5, right: 20, left: 0, bottom: 5 }}
             >
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
@@ -100,10 +128,8 @@ export default function ProduksiBulananChart() {
                   fontSize: 12,
                 }}
               />
-              <Legend
-                wrapperStyle={{ fontSize: 12, paddingTop: 8 }}
-              />
-              {PLANTS.map((plant) => (
+              <Legend wrapperStyle={{ fontSize: 12, paddingTop: 8 }} />
+              {(plantCode ? PLANTS.filter((p) => p.key === plantCode) : PLANTS).map((plant) => (
                 <Bar
                   key={plant.key}
                   dataKey={plant.key}

@@ -217,6 +217,20 @@ export default function FormInputDataComponent({
             </div>
           </div>
 
+          {/* Keterangan */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Keterangan
+            </label>
+            <textarea
+              value={form.keterangan}
+              onChange={(e) => updateForm("keterangan", e.target.value)}
+              placeholder="Cth: Pembayaran termin 1, Catatan khusus, dll"
+              rows={2}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition resize-none"
+            />
+          </div>
+
           {/* Action Buttons */}
           <div className="flex items-center gap-3 pt-2">
             <button

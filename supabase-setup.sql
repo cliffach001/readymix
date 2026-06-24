@@ -37,9 +37,10 @@ CREATE TABLE IF NOT EXISTS rkap (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   plant_code TEXT NOT NULL REFERENCES plants(code),
   tahun INTEGER NOT NULL,
+  bulan INTEGER NOT NULL,  -- 1=Jan, 2=Feb, ..., 12=Des
   target NUMERIC(15,2) NOT NULL,
-  realisasi NUMERIC(15,2) NOT NULL,
-  created_at TIMESTAMPTZ DEFAULT now()
+  created_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(plant_code, tahun, bulan)
 );
 
 -- 5. LAPORAN MINGGUAN
@@ -69,8 +70,29 @@ CREATE TABLE IF NOT EXISTS input_data (
   jumlah_harga NUMERIC(15,2) NOT NULL,
   sewa_cp NUMERIC(15,2) DEFAULT 0,
   total_harga NUMERIC(15,2) NOT NULL,
+  keterangan TEXT DEFAULT '',
   created_at TIMESTAMPTZ DEFAULT now()
 );
+
+-- 7. APPROVAL REQUESTS (Marketing → Manager/Admin)
+CREATE TABLE IF NOT EXISTS approval_requests (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  action_type TEXT NOT NULL,
+  table_name TEXT NOT NULL DEFAULT 'input_data',
+  record_id UUID NOT NULL,
+  plant_code TEXT NOT NULL REFERENCES plants(code),
+  requested_by TEXT NOT NULL,
+  requested_at TIMESTAMPTZ DEFAULT now(),
+  status TEXT DEFAULT 'pending',
+  reviewed_by TEXT,
+  reviewed_at TIMESTAMPTZ,
+  original_data JSONB,
+  new_data JSONB,
+  notes TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_approval_status ON approval_requests(status);
+CREATE INDEX IF NOT EXISTS idx_approval_requested_at ON approval_requests(requested_at DESC);
 
 -- ============================================================
 -- Row Level Security (boleh diakses semua user untuk demo)
@@ -81,6 +103,7 @@ ALTER TABLE produksi_bulanan ENABLE ROW LEVEL SECURITY;
 ALTER TABLE rkap ENABLE ROW LEVEL SECURITY;
 ALTER TABLE laporan_mingguan ENABLE ROW LEVEL SECURITY;
 ALTER TABLE input_data ENABLE ROW LEVEL SECURITY;
+ALTER TABLE approval_requests ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Allow all" ON plants FOR ALL USING (true);
 CREATE POLICY "Allow all" ON produksi_harian FOR ALL USING (true);
@@ -88,6 +111,7 @@ CREATE POLICY "Allow all" ON produksi_bulanan FOR ALL USING (true);
 CREATE POLICY "Allow all" ON rkap FOR ALL USING (true);
 CREATE POLICY "Allow all" ON laporan_mingguan FOR ALL USING (true);
 CREATE POLICY "Allow all" ON input_data FOR ALL USING (true);
+CREATE POLICY "Allow all" ON approval_requests FOR ALL USING (true);
 
 -- ============================================================
 -- SEED DATA
@@ -129,11 +153,35 @@ INSERT INTO produksi_bulanan (bulan, tahun, plant_code, volume) VALUES
   ('Mei', 2026, 'pangkep', 10100), ('Mei', 2026, 'makassar', 14200), ('Mei', 2026, 'pinrang', 5600), ('Mei', 2026, 'kendari', 6400), ('Mei', 2026, 'toraja', 4600), ('Mei', 2026, 'masamba', 2900),
   ('Jun', 2026, 'pangkep', 9400), ('Jun', 2026, 'makassar', 13500), ('Jun', 2026, 'pinrang', 5200), ('Jun', 2026, 'kendari', 6200), ('Jun', 2026, 'toraja', 4200), ('Jun', 2026, 'masamba', 2650);
 
--- RKAP
-INSERT INTO rkap (plant_code, tahun, target, realisasi) VALUES
-  ('pangkep', 2026, 180000, 55600),
-  ('makassar', 2026, 260000, 80500),
-  ('pinrang', 2026, 100000, 30950),
-  ('kendari', 2026, 120000, 37950),
-  ('toraja', 2026, 85000, 25150),
-  ('masamba', 2026, 55000, 15900);
+-- RKAP Bulanan (target per plant per bulan)
+INSERT INTO rkap (plant_code, tahun, bulan, target) VALUES
+  -- Pangkep: yearly ~180.000 → ~15.000/bln
+  ('pangkep', 2026, 1, 14000), ('pangkep', 2026, 2, 14500), ('pangkep', 2026, 3, 15000),
+  ('pangkep', 2026, 4, 15500), ('pangkep', 2026, 5, 16000), ('pangkep', 2026, 6, 15000),
+  ('pangkep', 2026, 7, 15500), ('pangkep', 2026, 8, 15000), ('pangkep', 2026, 9, 14500),
+  ('pangkep', 2026, 10, 15000), ('pangkep', 2026, 11, 14000), ('pangkep', 2026, 12, 13000),
+  -- Makassar: yearly ~260.000 → ~21.666/bln
+  ('makassar', 2026, 1, 20000), ('makassar', 2026, 2, 21000), ('makassar', 2026, 3, 21500),
+  ('makassar', 2026, 4, 22000), ('makassar', 2026, 5, 23000), ('makassar', 2026, 6, 22000),
+  ('makassar', 2026, 7, 22500), ('makassar', 2026, 8, 22000), ('makassar', 2026, 9, 21000),
+  ('makassar', 2026, 10, 21500), ('makassar', 2026, 11, 20000), ('makassar', 2026, 12, 19500),
+  -- Pinrang: yearly ~100.000 → ~8.333/bln
+  ('pinrang', 2026, 1, 7500), ('pinrang', 2026, 2, 8000), ('pinrang', 2026, 3, 8200),
+  ('pinrang', 2026, 4, 8500), ('pinrang', 2026, 5, 8800), ('pinrang', 2026, 6, 8500),
+  ('pinrang', 2026, 7, 8600), ('pinrang', 2026, 8, 8400), ('pinrang', 2026, 9, 8000),
+  ('pinrang', 2026, 10, 8200), ('pinrang', 2026, 11, 7800), ('pinrang', 2026, 12, 7500),
+  -- Kendari: yearly ~120.000 → ~10.000/bln
+  ('kendari', 2026, 1, 9000), ('kendari', 2026, 2, 9500), ('kendari', 2026, 3, 9800),
+  ('kendari', 2026, 4, 10000), ('kendari', 2026, 5, 10500), ('kendari', 2026, 6, 10200),
+  ('kendari', 2026, 7, 10300), ('kendari', 2026, 8, 10000), ('kendari', 2026, 9, 9800),
+  ('kendari', 2026, 10, 10000), ('kendari', 2026, 11, 9500), ('kendari', 2026, 12, 9200),
+  -- Toraja: yearly ~85.000 → ~7.083/bln
+  ('toraja', 2026, 1, 6500), ('toraja', 2026, 2, 6800), ('toraja', 2026, 3, 7000),
+  ('toraja', 2026, 4, 7200), ('toraja', 2026, 5, 7500), ('toraja', 2026, 6, 7200),
+  ('toraja', 2026, 7, 7300), ('toraja', 2026, 8, 7100), ('toraja', 2026, 9, 6800),
+  ('toraja', 2026, 10, 7000), ('toraja', 2026, 11, 6500), ('toraja', 2026, 12, 6000),
+  -- Masamba: yearly ~55.000 → ~4.583/bln
+  ('masamba', 2026, 1, 4200), ('masamba', 2026, 2, 4400), ('masamba', 2026, 3, 4500),
+  ('masamba', 2026, 4, 4700), ('masamba', 2026, 5, 4800), ('masamba', 2026, 6, 4600),
+  ('masamba', 2026, 7, 4700), ('masamba', 2026, 8, 4500), ('masamba', 2026, 9, 4400),
+  ('masamba', 2026, 10, 4500), ('masamba', 2026, 11, 4300), ('masamba', 2026, 12, 4000);

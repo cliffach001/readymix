@@ -3,62 +3,92 @@
 import { useState, useEffect } from "react";
 import TabelProduksi from "@/components/laporan-mingguan/TabelProduksi";
 import ProtectedRoute from "@/components/ProtectedRoute";
-import { fetchLaporanMingguan, fetchPlants } from "@/lib/supabase-service";
-import type { PlantRow } from "@/lib/supabase-service";
-import type { LaporanMingguan } from "@/lib/data";
+import {
+  fetchWeeklyTransactions,
+  fetchInputAvailableWeeks,
+  fetchPlants,
+} from "@/lib/supabase-service";
+import type { PlantRow, PerPlantTransactions, WeekInfo } from "@/lib/supabase-service";
+import { Factory, Calendar } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { getFilterBulan, setFilterBulan } from "@/lib/filter-bulan";
 
-// Info minggu
-const tglMulai = "16 Juni 2026";
-const tglSelesai = "22 Juni 2026";
-const mingguKe = "Minggu III";
-const bulanLaporan = "Juni 2026";
+const MONTHS = [
+  { num: 1, label: "Januari" }, { num: 2, label: "Februari" }, { num: 3, label: "Maret" },
+  { num: 4, label: "April" }, { num: 5, label: "Mei" }, { num: 6, label: "Juni" },
+  { num: 7, label: "Juli" }, { num: 8, label: "Agustus" }, { num: 9, label: "September" },
+  { num: 10, label: "Oktober" }, { num: 11, label: "November" }, { num: 12, label: "Desember" },
+];
+const CURRENT_YEAR = new Date().getFullYear();
 
 export default function LaporanMingguanPage() {
+  const defaultFilter = getFilterBulan();
   const { user } = useAuth();
-  const [filterPlant, setFilterPlant] = useState<string>("semua");
+  const [filterPlant, setFilterPlant] = useState<string>(user?.unitKerja || "kendari");
   const [plants, setPlants] = useState<PlantRow[]>([]);
-  const [dataMap, setDataMap] = useState<Record<string, LaporanMingguan[]>>({});
+  const [weeklyPlants, setWeeklyPlants] = useState<PerPlantTransactions[]>([]);
+  const [availableWeeks, setAvailableWeeks] = useState<WeekInfo[]>([]);
+  const [selectedWeekStart, setSelectedWeekStart] = useState("");
   const [loading, setLoading] = useState(true);
+  const [weekInfo, setWeekInfo] = useState<WeekInfo | null>(null);
+  const [selectedMonth, setSelectedMonth] = useState(defaultFilter.month);
+  const [selectedYear, setSelectedYear] = useState(defaultFilter.year);
 
   const isMarketingTerbatas = user?.role === "marketing" && user?.unitKerja;
-  const plantCodes = isMarketingTerbatas
-    ? [user!.unitKerja!]
-    : ["pangkep", "makassar", "pinrang", "kendari", "toraja", "masamba"];
 
+  // Fetch data ketika selectedWeekStart berubah
   useEffect(() => {
-    const fetchers = plantCodes.map((code) => fetchLaporanMingguan(code));
+    if (selectedWeekStart) {
+      setLoading(true);
+      Promise.all([
+        fetchWeeklyTransactions(selectedWeekStart, selectedMonth, selectedYear),
+        fetchPlants(),
+      ])
+        .then(([weekly, plantsData]) => {
+          const filteredPlants = isMarketingTerbatas
+            ? plantsData.filter((p) => p.id === user!.unitKerja)
+            : plantsData;
+          setPlants(filteredPlants);
+          setWeekInfo(weekly.weekInfo);
+          setWeeklyPlants(weekly.plants);
+        })
+        .catch(console.error)
+        .finally(() => setLoading(false));
+    }
+  }, [selectedWeekStart, selectedMonth, selectedYear, isMarketingTerbatas, user?.unitKerja]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    Promise.all([
-      fetchPlants(),
-      ...fetchers,
-    ])
-      .then(([plantsData, ...allData]) => {
-        // Filter plants jika marketing
-        const filteredPlants = isMarketingTerbatas
-          ? plantsData.filter((p) => p.id === user!.unitKerja)
-          : plantsData;
-        setPlants(filteredPlants);
-
-        const map: Record<string, LaporanMingguan[]> = {};
-        plantCodes.forEach((code, i) => {
-          map[code] = allData[i];
+  // Fetch weeks ketika bulan/tahun berubah
+  useEffect(() => {
+    setFilterBulan(selectedMonth, selectedYear);
+    fetchInputAvailableWeeks()
+      .then((weeks) => {
+        const filtered = weeks.filter((w) => {
+          if (!w.startDate) return false;
+          const d = new Date(w.startDate + "T00:00:00");
+          return d.getMonth() === selectedMonth - 1 && d.getFullYear() === selectedYear;
         });
-        setDataMap(map);
-        if (isMarketingTerbatas) setFilterPlant("semua");
+        setAvailableWeeks(filtered);
+        if (filtered.length > 0) {
+          setSelectedWeekStart(filtered[0].startDate);
+        } else {
+          setSelectedWeekStart("");
+          setWeeklyPlants([]);
+          setWeekInfo(null);
+        }
       })
-      .catch(console.error)
-      .finally(() => setLoading(false));
-  }, [isMarketingTerbatas, user?.unitKerja]); // eslint-disable-line react-hooks/exhaustive-deps
+      .catch(console.error);
+  }, [selectedMonth, selectedYear]);
 
   const filteredPlants: PlantRow[] =
     filterPlant === "semua"
       ? plants
       : plants.filter((p) => p.id === filterPlant);
 
-  // Hitung grand total semua plant
-  const grandTotalSemua = Object.values(dataMap).reduce(
-    (acc, data) => acc + data.reduce((sum, d) => sum + d.total, 0),
+  const getWeeklyData = (plantId: string) =>
+    weeklyPlants.find((w) => w.plantCode === plantId);
+
+  const grandTotalSemua = weeklyPlants.reduce(
+    (acc, w) => acc + w.transactions.reduce((sum, d) => sum + d.total_harga, 0),
     0
   );
 
@@ -72,8 +102,51 @@ export default function LaporanMingguanPage() {
               Laporan Produksi Mingguan
             </h1>
             <p className="text-sm text-gray-500 mt-1">
-              {mingguKe} — {tglMulai} s.d. {tglSelesai}
+              {weekInfo ? weekInfo.periode : "Memuat..."}
             </p>
+          </div>
+
+          {/* Filter Bulan & Minggu */}
+          <div className="flex items-center gap-2">
+            <Calendar className="w-4 h-4 text-gray-400 shrink-0" />
+            <select
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(Number(e.target.value))}
+              className="px-3 py-2 rounded-xl border border-gray-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#FF6600]/20 focus:border-[#FF6600]"
+            >
+              {MONTHS.map((m) => (
+                <option key={m.num} value={m.num}>{m.label}</option>
+              ))}
+            </select>
+            <select
+              value={selectedYear}
+              onChange={(e) => setSelectedYear(Number(e.target.value))}
+              className="px-3 py-2 rounded-xl border border-gray-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#FF6600]/20 focus:border-[#FF6600]"
+            >
+              {[CURRENT_YEAR, CURRENT_YEAR - 1, CURRENT_YEAR - 2].map((y) => (
+                <option key={y} value={y}>{y}</option>
+              ))}
+            </select>
+
+            {/* Filter Minggu */}
+            <div className="relative w-full sm:w-56">
+              <select
+                value={selectedWeekStart}
+                onChange={(e) => setSelectedWeekStart(e.target.value)}
+                className="w-full appearance-none px-3 py-2 pr-8 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#FF6600]/20 focus:border-[#FF6600] cursor-pointer"
+              >
+                {availableWeeks.map((w) => (
+                  <option key={w.startDate} value={w.startDate}>
+                    {w.label}
+                  </option>
+                ))}
+              </select>
+              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -86,7 +159,7 @@ export default function LaporanMingguanPage() {
             <div>
               <p className="text-xs text-gray-500">Periode</p>
               <p className="text-sm font-semibold text-gray-800">
-                {mingguKe}, {bulanLaporan}
+                {weekInfo ? weekInfo.periode : "-"}
               </p>
             </div>
           </div>
@@ -106,37 +179,56 @@ export default function LaporanMingguanPage() {
               📊
             </div>
             <div>
-              <p className="text-xs text-gray-500">Total Produksi</p>
+              <p className="text-xs text-gray-500">Total Pendapatan</p>
               <p className="text-sm font-semibold text-gray-800">
-                {grandTotalSemua.toLocaleString("id-ID")} m³
+                Rp {grandTotalSemua.toLocaleString("id-ID")}
               </p>
             </div>
           </div>
         </div>
 
+        {/* Grid Total Pendapatan per Plant */}
+        {!loading && weeklyPlants.length > 0 && (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+            {weeklyPlants.map((wp) => {
+              const plant = plants.find((p) => p.id === wp.plantCode);
+              const totalPendapatan = wp.transactions.reduce((sum, d) => sum + d.total_harga, 0);
+              const totalVolume = wp.transactions.reduce((sum, d) => sum + d.volume, 0);
+              return (
+                <div
+                  key={wp.plantCode}
+                  className="card p-3 sm:p-4 flex flex-col items-center gap-1 border-l-4 border-l-[#FF6600]"
+                >
+                  <span className="text-lg">{plant?.icon || "🏭"}</span>
+                  <p className="text-[10px] sm:text-xs text-gray-500 font-medium text-center leading-tight">
+                    {plant?.nama.replace("Ready Mix ", "") || wp.plantCode}
+                  </p>
+                  <p className="text-xs sm:text-sm font-bold text-gray-900 text-center">
+                    Rp {totalPendapatan.toLocaleString("id-ID")}
+                  </p>
+                  <p className="text-[10px] text-gray-400">
+                    {totalVolume.toLocaleString("id-ID")} m³
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
         {/* Filter Buttons */}
-        <div className="flex flex-wrap gap-2">
-          <button
-            onClick={() => setFilterPlant("semua")}
-            className={`px-4 py-1.5 rounded-full text-xs font-medium transition-all ${
-              filterPlant === "semua"
-                ? "bg-primary-600 text-white shadow-sm"
-                : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"
-            }`}
-          >
-            Semua Plant
-          </button>
+        <div className="flex flex-wrap gap-1.5">
           {plants.map((plant) => (
             <button
               key={plant.id}
               onClick={() => setFilterPlant(plant.id)}
-              className={`px-4 py-1.5 rounded-full text-xs font-medium transition-all ${
+              className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-medium transition-all duration-200 ${
                 filterPlant === plant.id
-                  ? "bg-primary-600 text-white shadow-sm"
-                  : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"
+                  ? "bg-[#FF6600] text-white shadow-sm shadow-orange-200"
+                  : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50 hover:border-gray-300"
               }`}
             >
-              {plant.icon} {plant.nama.replace("Ready Mix ", "")}
+              <Factory className="w-3.5 h-3.5 text-current opacity-60" strokeWidth={1.5} />
+              <span>{plant.nama.replace("Ready Mix ", "")}</span>
             </button>
           ))}
         </div>
@@ -148,45 +240,46 @@ export default function LaporanMingguanPage() {
           </div>
         ) : (
           <div className="space-y-6">
-            {filteredPlants.map((plant, index) => (
-              <TabelProduksi
-                key={plant.id}
-                plant={{
-                  id: plant.id,
-                  nama: plant.nama,
-                  lokasi: plant.lokasi,
-                  icon: plant.icon,
-                }}
-                data={dataMap[plant.id] ?? []}
-                no={index + 1}
-              />
-            ))}
+            {filteredPlants.length === 0 ? (
+              <div className="card p-8 text-center text-sm text-gray-400">
+                Belum ada data untuk minggu ini
+              </div>
+            ) : (
+              filteredPlants.map((plant) => {
+                const weekly = getWeeklyData(plant.id);
+                return (
+                  <TabelProduksi
+                    key={plant.id}
+                    plant={{
+                      id: plant.id,
+                      nama: plant.nama,
+                      lokasi: plant.lokasi,
+                      icon: plant.icon,
+                    }}
+                    weekInfo={
+                      weekly?.weekInfo ?? {
+                        label: "",
+                        periode: "",
+                        startDate: "",
+                        endDate: "",
+                      }
+                    }
+                    transactions={weekly?.transactions ?? []}
+                  />
+                );
+              })
+            )}
           </div>
         )}
 
-        {/* Footer keterangan */}
+        {/* Footer */}
         <div className="card p-4">
           <h4 className="text-xs font-semibold text-gray-600 uppercase mb-2">
-            Keterangan
+            Sumber Data
           </h4>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs text-gray-500">
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded bg-sky-600" />
-              <span>Shift 1: 07:00 – 15:00 WITA</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded bg-red-500" />
-              <span>Shift 2: 15:00 – 23:00 WITA</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded bg-emerald-500" />
-              <span>Shift 3: 23:00 – 07:00 WITA</span>
-            </div>
-          </div>
-          <div className="mt-3 pt-3 border-t border-gray-100 text-xs text-gray-400">
+          <div className="text-xs text-gray-500">
             <p>
-              Laporan ini dihasilkan secara otomatis dari sistem. Data dapat
-              berubah jika ada koreksi dari masing-masing plant.
+              Data transaksi diambil dari input penjualan masing-masing plant.
             </p>
           </div>
         </div>

@@ -1,25 +1,38 @@
 "use client";
 
-import { type LaporanMingguan, type InfoPlant } from "@/lib/data";
+import type { InputDataRecord, WeekInfo } from "@/lib/supabase-service";
+
+function formatCurrency(val: number) {
+  return val.toLocaleString("id-ID");
+}
 
 interface TabelProduksiProps {
-  plant: InfoPlant;
-  data: LaporanMingguan[];
-  no?: number;
+  plant: {
+    id: string;
+    nama: string;
+    lokasi: string;
+    icon: string;
+  };
+  weekInfo: WeekInfo;
+  transactions: InputDataRecord[];
 }
 
 export default function TabelProduksi({
   plant,
-  data,
-  no = 1,
+  weekInfo,
+  transactions,
 }: TabelProduksiProps) {
-  // Hitung total
-  const totalShift1 = data.reduce((acc, d) => acc + d.shift1, 0);
-  const totalShift2 = data.reduce((acc, d) => acc + d.shift2, 0);
-  const totalShift3 = data.reduce((acc, d) => acc + d.shift3, 0);
-  const grandTotal = data.reduce((acc, d) => acc + d.total, 0);
-  const hariKerja = data.filter((d) => d.total > 0).length;
-  const rataRata = hariKerja > 0 ? Math.round(grandTotal / hariKerja) : 0;
+  const totalVolume = transactions.reduce((s, r) => s + r.volume, 0);
+  const totalJumlahHarga = transactions.reduce((s, r) => s + r.jumlah_harga, 0);
+  const totalSewaCP = transactions.reduce((s, r) => s + r.sewa_cp, 0);
+  const totalSemua = transactions.reduce((s, r) => s + r.total_harga, 0);
+
+  const formatDate = (tgl: string) =>
+    new Date(tgl + "T00:00:00").toLocaleDateString("id-ID", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
 
   return (
     <div className="card overflow-hidden">
@@ -30,7 +43,10 @@ export default function TabelProduksi({
           <h3 className="text-base font-semibold text-gray-900">
             {plant.nama}
           </h3>
-          <p className="text-xs text-gray-500">{plant.lokasi}</p>
+          <p className="text-xs text-gray-500">
+            {plant.lokasi} &middot; {weekInfo.periode} &middot;{" "}
+            {transactions.length} transaksi
+          </p>
         </div>
       </div>
 
@@ -39,107 +55,87 @@ export default function TabelProduksi({
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-gray-100 bg-gray-50/50">
-              <th className="text-left px-4 py-3 font-semibold text-gray-600 text-xs uppercase tracking-wider">
-                Hari
-              </th>
-              <th className="text-right px-4 py-3 font-semibold text-gray-600 text-xs uppercase tracking-wider">
-                Shift 1
-                <span className="block text-[10px] font-normal text-gray-400">
-                  07:00–15:00
-                </span>
-              </th>
-              <th className="text-right px-4 py-3 font-semibold text-gray-600 text-xs uppercase tracking-wider">
-                Shift 2
-                <span className="block text-[10px] font-normal text-gray-400">
-                  15:00–23:00
-                </span>
-              </th>
-              <th className="text-right px-4 py-3 font-semibold text-gray-600 text-xs uppercase tracking-wider">
-                Shift 3
-                <span className="block text-[10px] font-normal text-gray-400">
-                  23:00–07:00
-                </span>
-              </th>
-              <th className="text-right px-4 py-3 font-semibold text-gray-600 text-xs uppercase tracking-wider">
-                Total (m³)
-              </th>
-              <th className="text-left px-4 py-3 font-semibold text-gray-600 text-xs uppercase tracking-wider">
-                Keterangan
-              </th>
+              <th className="text-left px-3 py-3 font-semibold text-gray-600 text-[11px] uppercase tracking-wider whitespace-nowrap">Tanggal</th>
+              <th className="text-left px-3 py-3 font-semibold text-gray-600 text-[11px] uppercase tracking-wider whitespace-nowrap">Pelanggan</th>
+              <th className="text-left px-3 py-3 font-semibold text-gray-600 text-[11px] uppercase tracking-wider whitespace-nowrap">Pekerjaan</th>
+              <th className="text-left px-3 py-3 font-semibold text-gray-600 text-[11px] uppercase tracking-wider whitespace-nowrap">Type</th>
+              <th className="text-right px-3 py-3 font-semibold text-gray-600 text-[11px] uppercase tracking-wider whitespace-nowrap">Vol (m³)</th>
+              <th className="text-right px-3 py-3 font-semibold text-gray-600 text-[11px] uppercase tracking-wider whitespace-nowrap">Harga Satuan</th>
+              <th className="text-right px-3 py-3 font-semibold text-gray-600 text-[11px] uppercase tracking-wider whitespace-nowrap">Jumlah Harga</th>
+              <th className="text-right px-3 py-3 font-semibold text-gray-600 text-[11px] uppercase tracking-wider whitespace-nowrap">Sewa CP</th>
+              <th className="text-right px-3 py-3 font-semibold text-gray-600 text-[11px] uppercase tracking-wider whitespace-nowrap">Total</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50">
-            {data.map((row) => (
-              <tr
-                key={row.hari}
-                className={`hover:bg-gray-50/50 transition-colors ${
-                  row.total === 0 ? "bg-gray-50/30 text-gray-400" : ""
-                }`}
-              >
-                <td className="px-4 py-3 font-medium text-gray-700">
-                  {row.hari}
-                </td>
-                <td className="px-4 py-3 text-right tabular-nums text-gray-600">
-                  {row.shift1 > 0
-                    ? row.shift1.toLocaleString("id-ID")
-                    : "—"}
-                </td>
-                <td className="px-4 py-3 text-right tabular-nums text-gray-600">
-                  {row.shift2 > 0
-                    ? row.shift2.toLocaleString("id-ID")
-                    : "—"}
-                </td>
-                <td className="px-4 py-3 text-right tabular-nums text-gray-600">
-                  {row.shift3 > 0
-                    ? row.shift3.toLocaleString("id-ID")
-                    : "—"}
-                </td>
-                <td className="px-4 py-3 text-right tabular-nums font-semibold text-gray-900">
-                  {row.total > 0
-                    ? row.total.toLocaleString("id-ID")
-                    : "—"}
-                </td>
-                <td className="px-4 py-3 text-gray-500 text-xs">
-                  {row.keterangan && row.keterangan !== "-"
-                    ? row.keterangan
-                    : ""}
+            {transactions.length === 0 ? (
+              <tr>
+                <td colSpan={9} className="px-4 py-8 text-center text-gray-400">
+                  Tidak ada transaksi untuk minggu ini
                 </td>
               </tr>
-            ))}
+            ) : (
+              transactions.map((row) => (
+                <tr
+                  key={row.id}
+                  className="hover:bg-gray-50/50 transition-colors"
+                >
+                  <td className="px-3 py-3 text-gray-900 font-medium whitespace-nowrap text-xs">
+                    {formatDate(row.tanggal)}
+                  </td>
+                  <td className="px-3 py-3 text-gray-700 whitespace-nowrap text-xs max-w-[160px] truncate">
+                    {row.nama_pelanggan}
+                  </td>
+                  <td className="px-3 py-3 text-gray-600 whitespace-nowrap text-xs max-w-[140px] truncate">
+                    {row.uraian_pekerjaan}
+                  </td>
+                  <td className="px-3 py-3 whitespace-nowrap text-xs">
+                    <span className="inline-flex px-1.5 py-0.5 rounded text-[10px] bg-gray-100 text-gray-600">
+                      {row.type || "-"}
+                    </span>
+                  </td>
+                  <td className="px-3 py-3 text-right font-medium text-gray-900 tabular-nums whitespace-nowrap text-xs">
+                    {row.volume.toLocaleString("id-ID")}
+                  </td>
+                  <td className="px-3 py-3 text-right text-gray-600 tabular-nums whitespace-nowrap text-xs">
+                    {formatCurrency(row.harga_satuan)}
+                  </td>
+                  <td className="px-3 py-3 text-right text-gray-600 tabular-nums whitespace-nowrap text-xs">
+                    {formatCurrency(row.jumlah_harga)}
+                  </td>
+                  <td className="px-3 py-3 text-right text-gray-600 tabular-nums whitespace-nowrap text-xs">
+                    {row.sewa_cp > 0 ? formatCurrency(row.sewa_cp) : "-"}
+                  </td>
+                  <td className="px-3 py-3 text-right font-semibold text-gray-900 tabular-nums whitespace-nowrap text-xs">
+                    {formatCurrency(row.total_harga)}
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
-          {/* Footer: Total per shift */}
-          <tfoot>
-            <tr className="border-t-2 border-gray-200 bg-gray-50">
-              <td className="px-4 py-3 font-bold text-gray-800 text-xs uppercase">
-                Total
-              </td>
-              <td className="px-4 py-3 text-right tabular-nums font-bold text-gray-800">
-                {totalShift1.toLocaleString("id-ID")}
-              </td>
-              <td className="px-4 py-3 text-right tabular-nums font-bold text-gray-800">
-                {totalShift2.toLocaleString("id-ID")}
-              </td>
-              <td className="px-4 py-3 text-right tabular-nums font-bold text-gray-800">
-                {totalShift3.toLocaleString("id-ID")}
-              </td>
-              <td className="px-4 py-3 text-right tabular-nums font-bold text-primary-600">
-                {grandTotal.toLocaleString("id-ID")}
-              </td>
-              <td className="px-4 py-3"></td>
-            </tr>
-            <tr className="bg-gray-50/50 border-t border-gray-100">
-              <td
-                colSpan={6}
-                className="px-4 py-2 text-xs text-gray-500"
-              >
-                Rata-rata produksi:{" "}
-                <span className="font-semibold text-gray-700">
-                  {rataRata.toLocaleString("id-ID")} m³/hari
-                </span>{" "}
-                · Hari kerja: {hariKerja} hari
-              </td>
-            </tr>
-          </tfoot>
+          {transactions.length > 0 && (
+            <tfoot>
+              <tr className="border-t-2 border-gray-200 bg-gray-50">
+                <td colSpan={4} className="px-3 py-3 font-bold text-gray-800 text-xs uppercase">
+                  Total ({transactions.length} transaksi)
+                </td>
+                <td className="px-3 py-3 text-right tabular-nums font-bold text-gray-800 text-xs">
+                  {totalVolume.toLocaleString("id-ID")}
+                </td>
+                <td className="px-3 py-3 text-right tabular-nums text-gray-500 text-xs">
+                  —
+                </td>
+                <td className="px-3 py-3 text-right tabular-nums font-bold text-gray-800 text-xs">
+                  {formatCurrency(totalJumlahHarga)}
+                </td>
+                <td className="px-3 py-3 text-right tabular-nums font-bold text-gray-800 text-xs">
+                  {formatCurrency(totalSewaCP)}
+                </td>
+                <td className="px-3 py-3 text-right tabular-nums font-bold text-primary-600 text-xs">
+                  {formatCurrency(totalSemua)}
+                </td>
+              </tr>
+            </tfoot>
+          )}
         </table>
       </div>
     </div>

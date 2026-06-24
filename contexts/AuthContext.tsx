@@ -19,7 +19,7 @@ interface AuthContextValue {
   user: AuthUser | null;
   isAuthenticated: boolean;
   ready: boolean;
-  login: (email: string, role: Role, unitKerja?: string) => void;
+  login: (email: string, role: Role, namaLengkap: string, unitKerja?: string) => void;
   logout: () => void;
 }
 
@@ -32,7 +32,7 @@ function getInitialUser(): AuthUser | null {
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     if (parsed && typeof parsed.role === "string") {
-      return { role: parsed.role as Role, email: parsed.email ?? "", unitKerja: parsed.unitKerja };
+      return { role: parsed.role as Role, email: parsed.email ?? "", namaLengkap: parsed.namaLengkap ?? parsed.email ?? "", unitKerja: parsed.unitKerja };
     }
     return null;
   } catch {
@@ -50,8 +50,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setReady(true);
   }, []);
 
-  const login = useCallback((email: string, role: Role, unitKerja?: string) => {
-    const authUser: AuthUser = { role, email, unitKerja };
+  const login = useCallback((email: string, role: Role, namaLengkap: string, unitKerja?: string) => {
+    const authUser: AuthUser = { role, email, namaLengkap, unitKerja };
     try {
       localStorage.setItem(STORAGE_KEY_AUTH, JSON.stringify(authUser));
     } catch {

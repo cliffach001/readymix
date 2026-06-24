@@ -41,7 +41,7 @@ export default function LoginScreen() {
         return;
       }
 
-      login(result.data.username, result.data.role as any, result.data.unit_kerja ?? undefined);
+      login(result.data.username, result.data.role as any, result.data.nama_lengkap, result.data.unit_kerja ?? undefined);
       router.push("/dashboard");
     } catch (err: any) {
       setError(err?.message || "Terjadi kesalahan yang tidak terduga");

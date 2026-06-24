@@ -11,16 +11,16 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
-import { fetchProduksiHarian } from "@/lib/supabase-service";
+import { fetchInputHarianBulanan } from "@/lib/supabase-service";
 import type { ProduksiHarianRow } from "@/lib/supabase-service";
 
 const COLORS = [
-  "#FF6600", // orange (brand)
-  "#ef4444", // red
-  "#10b981", // green
-  "#f59e0b", // amber
-  "#8b5cf6", // violet
-  "#ec4899", // pink
+  "#FF6600",
+  "#ef4444",
+  "#10b981",
+  "#f59e0b",
+  "#8b5cf6",
+  "#ec4899",
 ];
 
 const PLANTS = [
@@ -32,16 +32,23 @@ const PLANTS = [
   { key: "masamba", label: "Masamba", color: COLORS[5] },
 ];
 
-export default function ProduksiHarianChart() {
+interface Props {
+  month: number;
+  year: number;
+  plantCode?: string;
+}
+
+export default function ProduksiHarianChart({ month, year, plantCode }: Props) {
   const [data, setData] = useState<ProduksiHarianRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchProduksiHarian()
+    setLoading(true);
+    fetchInputHarianBulanan(month, year)
       .then(setData)
       .catch(console.error)
       .finally(() => setLoading(false));
-  }, []);
+  }, [month, year]);
 
   if (loading) {
     return (
@@ -63,7 +70,10 @@ export default function ProduksiHarianChart() {
           Produksi Harian
         </h3>
         <p className="text-sm text-gray-500 mt-0.5">
-          Volume produksi 14 hari terakhir (m³)
+          Volume produksi per hari —{" "}
+          {data.length > 0
+            ? `${data[0].tanggal} s.d. ${data[data.length - 1].tanggal}`
+            : `${String(month).padStart(2, "0")}/${year}`}
         </p>
       </div>
       <div className="card-body">
@@ -79,6 +89,7 @@ export default function ProduksiHarianChart() {
                 tick={{ fontSize: 11, fill: "#64748b" }}
                 tickLine={false}
                 axisLine={{ stroke: "#e2e8f0" }}
+                tickFormatter={(val) => val.split("-").pop()?.replace(/^0/, "") ?? ""}
               />
               <YAxis
                 tick={{ fontSize: 11, fill: "#64748b" }}
@@ -100,10 +111,8 @@ export default function ProduksiHarianChart() {
                   fontSize: 12,
                 }}
               />
-              <Legend
-                wrapperStyle={{ fontSize: 12, paddingTop: 8 }}
-              />
-              {PLANTS.map((plant) => (
+              <Legend wrapperStyle={{ fontSize: 12, paddingTop: 8 }} />
+              {(plantCode ? PLANTS.filter((p) => p.key === plantCode) : PLANTS).map((plant) => (
                 <Line
                   key={plant.key}
                   type="monotone"

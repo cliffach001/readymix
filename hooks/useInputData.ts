@@ -24,6 +24,7 @@ function dbToApp(rec: InputDataRecord): InputData {
     jumlahHarga: rec.jumlah_harga,
     sewaCP: rec.sewa_cp,
     totalHarga: rec.total_harga,
+    keterangan: rec.keterangan ?? '',
     createdAt: rec.created_at,
   };
 }
@@ -36,6 +37,7 @@ export interface FormInputData {
   volume: string;
   hargaSatuan: string;
   sewaCP: string;
+  keterangan: string;
 }
 
 const emptyForm: FormInputData = {
@@ -46,6 +48,7 @@ const emptyForm: FormInputData = {
   volume: "",
   hargaSatuan: "",
   sewaCP: "0",
+  keterangan: "",
 };
 
 export function useInputData(plantId: string) {
@@ -120,6 +123,7 @@ export function useInputData(plantId: string) {
           jumlah_harga: jumlahHarga,
           sewa_cp: sewaCP,
           total_harga: totalHarga,
+          keterangan: form.keterangan,
         });
         setAllData((prev) =>
           prev.map((d) => (d.id === editingId ? dbToApp(updated) : d))
@@ -136,6 +140,7 @@ export function useInputData(plantId: string) {
           jumlah_harga: jumlahHarga,
           sewa_cp: sewaCP,
           total_harga: totalHarga,
+          keterangan: form.keterangan,
         });
         setAllData((prev) => [dbToApp(created), ...prev]);
       }
@@ -171,6 +176,7 @@ export function useInputData(plantId: string) {
         volume: entry.volume.toString(),
         hargaSatuan: entry.hargaSatuan.toString(),
         sewaCP: entry.sewaCP.toString(),
+        keterangan: entry.keterangan,
       });
       setEditingId(id);
     },
