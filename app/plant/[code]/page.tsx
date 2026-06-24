@@ -156,7 +156,7 @@ export default function PlantDetailPage() {
           await updateInputData(editingInputId, payload);
         }
       } else {
-        if (!isAdmin) {
+        if (!isAdmin && !isMarketing) {
           alert("Anda tidak memiliki izin untuk menambahkan data");
           resetForm();
           setShowModal(false);
