@@ -385,7 +385,7 @@ export default function PlantDetailPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
               </div>
-              {isAdmin && (
+              {(isAdmin || isMarketing) && (
                 <button
                   onClick={() => {
                     resetForm();
@@ -413,13 +413,13 @@ export default function PlantDetailPage() {
                   <th className="text-right px-2 sm:px-4 py-3 font-medium text-gray-600 whitespace-nowrap text-[11px] sm:text-xs">Jumlah Harga</th>
                   <th className="text-right px-2 sm:px-4 py-3 font-medium text-gray-600 whitespace-nowrap text-[11px] sm:text-xs">Sewa CP</th>
                   <th className="text-right px-2 sm:px-4 py-3 font-medium text-gray-600 whitespace-nowrap text-[11px] sm:text-xs">Total</th>
-                  {isAdmin && <th className="text-center px-2 sm:px-4 py-3 font-medium text-gray-600 whitespace-nowrap text-[11px] sm:text-xs">Aksi</th>}
+                  {(isAdmin || isMarketing) && <th className="text-center px-2 sm:px-4 py-3 font-medium text-gray-600 whitespace-nowrap text-[11px] sm:text-xs">Aksi</th>}
                 </tr>
               </thead>
               <tbody>
                 {paginatedData.length === 0 ? (
                   <tr>
-                    <td colSpan={isAdmin ? 11 : 10} className="px-4 py-8 text-center text-gray-400">
+                    <td colSpan={isAdmin || isMarketing ? 11 : 10} className="px-4 py-8 text-center text-gray-400">
                       {searchTerm ? "Pencarian tidak ditemukan" : "Belum ada data penjualan"}
                     </td>
                   </tr>
@@ -470,7 +470,7 @@ export default function PlantDetailPage() {
                         <td className="px-2 sm:px-4 py-3 text-right font-semibold text-gray-900 tabular-nums whitespace-nowrap text-xs sm:text-sm">
                           {formatCurrency(row.total_harga)}
                         </td>
-                        {isAdmin && (
+                        {(isAdmin || isMarketing) && (
                           <td className="px-2 sm:px-4 py-3 text-center">
                             <div className="flex items-center justify-center gap-1">
                               <button
@@ -514,7 +514,7 @@ export default function PlantDetailPage() {
                     <td className="px-2 sm:px-4 py-3 text-right font-bold text-[#FF6600] tabular-nums whitespace-nowrap text-xs sm:text-sm">
                       {formatCurrency(filteredTotal)}
                     </td>
-                    {isAdmin && <td className="px-2 sm:px-4 py-3"></td>}
+                    {(isAdmin || isMarketing) && <td className="px-2 sm:px-4 py-3"></td>}
                   </tr>
                 </tfoot>
               )}
