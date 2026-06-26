@@ -54,6 +54,15 @@ function LayoutContent({ children }: { children: ReactNode }) {
     setShowProfile(false);
   }, [pathname]);
 
+  // Auto-reload setiap 30 detik (hanya saat login)
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const id = setInterval(() => {
+      window.location.reload();
+    }, 30_000);
+    return () => clearInterval(id);
+  }, [isAuthenticated]);
+
   if (!ready) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
