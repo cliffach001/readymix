@@ -156,7 +156,7 @@ export default function LaporanMingguanPage() {
         </div>
 
         {/* Info bar */}
-        <div className="flex flex-col gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="card p-4 flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center text-slate-600 text-lg">
               📅
@@ -165,17 +165,6 @@ export default function LaporanMingguanPage() {
               <p className="text-xs text-gray-500">Periode</p>
               <p className="text-sm font-semibold text-gray-800">
                 {weekInfo ? weekInfo.periode : "-"}
-              </p>
-            </div>
-          </div>
-          <div className="card p-4 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center text-green-600 text-lg">
-              🏭
-            </div>
-            <div>
-              <p className="text-xs text-gray-500">Total Plant</p>
-              <p className="text-sm font-semibold text-gray-800">
-                {plants.length} Plant Aktif
               </p>
             </div>
           </div>
@@ -194,8 +183,10 @@ export default function LaporanMingguanPage() {
 
         {/* Grid Total Pendapatan per Plant */}
         {!loading && weeklyPlants.length > 0 && (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-            {weeklyPlants.map((wp) => {
+          <div className="grid grid-cols-1 gap-3">
+            {weeklyPlants
+              .filter((wp) => !user?.unitKerja || wp.plantCode === user.unitKerja)
+              .map((wp) => {
               const plant = plants.find((p) => p.id === wp.plantCode);
               const totalPendapatan = wp.transactions.reduce((sum, d) => sum + d.total_harga, 0);
               const totalVolume = wp.transactions.reduce((sum, d) => sum + d.volume, 0);
@@ -270,6 +261,7 @@ export default function LaporanMingguanPage() {
                       }
                     }
                     transactions={weekly?.transactions ?? []}
+                    userName={user?.namaLengkap}
                   />
                 );
               })

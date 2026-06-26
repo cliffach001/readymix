@@ -259,6 +259,31 @@ export default function PresentasiPage() {
       r.keterangan || "",
     ]);
 
+    // Hitung total keseluruhan
+    const totals = dailyData.reduce(
+      (acc, r) => ({
+        volume: acc.volume + r.volume,
+        jumlah_harga: acc.jumlah_harga + r.jumlah_harga,
+        sewa_cp: acc.sewa_cp + r.sewa_cp,
+        total_harga: acc.total_harga + r.total_harga,
+      }),
+      { volume: 0, jumlah_harga: 0, sewa_cp: 0, total_harga: 0 }
+    );
+
+    // Row total di akhir tabel
+    tableRows.push([
+      "TOTAL",
+      "",
+      "",
+      "",
+      totals.volume.toLocaleString("id-ID"),
+      "",
+      `Rp ${formatCurrency(totals.jumlah_harga)}`,
+      totals.sewa_cp > 0 ? `Rp ${formatCurrency(totals.sewa_cp)}` : "-",
+      `Rp ${formatCurrency(totals.total_harga)}`,
+      "",
+    ]);
+
     let tableFinalY = margin + 22;
 
     // Lebar tersedia: 297mm - 20mm - 20mm = 257mm untuk 10 kolom
@@ -302,6 +327,13 @@ export default function PresentasiPage() {
       didDrawPage: (data: any) => {
         totalPages = pdf.getNumberOfPages();
         addFooter(data.pageNumber);
+      },
+      didParseCell: (data: any) => {
+        if (data.row.index === dailyData.length) {
+          data.cell.styles.fontStyle = "bold";
+          data.cell.styles.fillColor = [255, 237, 224];
+          data.cell.styles.textColor = primaryRGB;
+        }
       },
     });
 

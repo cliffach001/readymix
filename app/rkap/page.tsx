@@ -246,47 +246,94 @@ export default function RKAPPage() {
 
         {/* ── Stat Cards ── */}
         {!loading && plantsWithData.length > 0 && (
-          <div className="grid grid-cols-3 gap-2 sm:gap-4">
-            <div className="card p-2 sm:p-4 flex items-center gap-2 sm:gap-3 border-l-4 border-l-[#F35b04] min-w-0">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-orange-100 flex items-center justify-center shrink-0 text-sm sm:text-lg">
-                🎯
+          <>
+            {/* Desktop: 3 kolom 1 baris */}
+            <div className="hidden sm:grid sm:grid-cols-3 gap-4">
+              <div className="card p-4 flex items-center gap-3 border-l-4 border-l-[#F35b04] min-w-0">
+                <div className="w-10 h-10 rounded-lg bg-orange-100 flex items-center justify-center shrink-0 text-lg">
+                  🎯
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs text-gray-500 font-medium truncate">Total Target</p>
+                  <p className="text-lg font-bold text-gray-900 truncate">
+                    {plantsWithData.reduce((s, p) => s + p!.totalTarget, 0).toLocaleString("id-ID")} m³
+                  </p>
+                </div>
               </div>
-              <div className="min-w-0">
-                <p className="text-[10px] sm:text-xs text-gray-500 font-medium truncate">Total Target</p>
-                <p className="text-xs sm:text-lg font-bold text-gray-900 truncate">
-                  {plantsWithData.reduce((s, p) => s + p!.totalTarget, 0).toLocaleString("id-ID")} m³
-                </p>
+              <div className="card p-4 flex items-center gap-3 border-l-4 border-l-emerald-500 min-w-0">
+                <div className="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center shrink-0 text-lg">
+                  📊
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs text-gray-500 font-medium truncate">Total Realisasi</p>
+                  <p className="text-lg font-bold text-gray-900 truncate">
+                    {plantsWithData.reduce((s, p) => s + p!.plantRealisasi, 0).toLocaleString("id-ID")} m³
+                  </p>
+                </div>
+              </div>
+              <div className="card p-4 flex items-center gap-3 border-l-4 border-l-[#F35b04] min-w-0">
+                <div className="w-10 h-10 rounded-lg bg-orange-100 flex items-center justify-center shrink-0 text-lg">
+                  📈
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs text-gray-500 font-medium truncate">Pencapaian</p>
+                  <p className="text-lg font-bold text-gray-900 truncate">
+                    {(() => {
+                      const totalT = plantsWithData.reduce((s, p) => s + p!.totalTarget, 0);
+                      const totalR = plantsWithData.reduce((s, p) => s + p!.plantRealisasi, 0);
+                      return totalT > 0
+                        ? Math.round((totalR / totalT) * 100 * 10) / 10
+                        : 0;
+                    })()}%
+                  </p>
+                </div>
               </div>
             </div>
-            <div className="card p-2 sm:p-4 flex items-center gap-2 sm:gap-3 border-l-4 border-l-emerald-500 min-w-0">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-emerald-100 flex items-center justify-center shrink-0 text-sm sm:text-lg">
-                📊
+            {/* Mobile: Target + Realisasi 1 baris, Pencapaian di bawah */}
+            <div className="sm:hidden space-y-2">
+              <div className="grid grid-cols-2 gap-2">
+                <div className="card p-2 flex items-center gap-2 border-l-4 border-l-[#F35b04] min-w-0">
+                  <div className="w-8 h-8 rounded-lg bg-orange-100 flex items-center justify-center shrink-0 text-sm">
+                    🎯
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[10px] text-gray-500 font-medium truncate">Total Target</p>
+                    <p className="text-xs font-bold text-gray-900 truncate">
+                      {plantsWithData.reduce((s, p) => s + p!.totalTarget, 0).toLocaleString("id-ID")} m³
+                    </p>
+                  </div>
+                </div>
+                <div className="card p-2 flex items-center gap-2 border-l-4 border-l-emerald-500 min-w-0">
+                  <div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center shrink-0 text-sm">
+                    📊
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[10px] text-gray-500 font-medium truncate">Total Realisasi</p>
+                    <p className="text-xs font-bold text-gray-900 truncate">
+                      {plantsWithData.reduce((s, p) => s + p!.plantRealisasi, 0).toLocaleString("id-ID")} m³
+                    </p>
+                  </div>
+                </div>
               </div>
-              <div className="min-w-0">
-                <p className="text-[10px] sm:text-xs text-gray-500 font-medium truncate">Total Realisasi</p>
-                <p className="text-xs sm:text-lg font-bold text-gray-900 truncate">
-                  {plantsWithData.reduce((s, p) => s + p!.plantRealisasi, 0).toLocaleString("id-ID")} m³
-                </p>
+              <div className="card p-2 flex items-center gap-2 border-l-4 border-l-[#F35b04] min-w-0">
+                <div className="w-8 h-8 rounded-lg bg-orange-100 flex items-center justify-center shrink-0 text-sm">
+                  📈
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[10px] text-gray-500 font-medium truncate">Pencapaian</p>
+                  <p className="text-xs font-bold text-gray-900 truncate">
+                    {(() => {
+                      const totalT = plantsWithData.reduce((s, p) => s + p!.totalTarget, 0);
+                      const totalR = plantsWithData.reduce((s, p) => s + p!.plantRealisasi, 0);
+                      return totalT > 0
+                        ? Math.round((totalR / totalT) * 100 * 10) / 10
+                        : 0;
+                    })()}%
+                  </p>
+                </div>
               </div>
             </div>
-            <div className="card p-2 sm:p-4 flex items-center gap-2 sm:gap-3 border-l-4 border-l-[#F35b04] min-w-0">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-orange-100 flex items-center justify-center shrink-0 text-sm sm:text-lg">
-                📈
-              </div>
-              <div className="min-w-0">
-                <p className="text-[10px] sm:text-xs text-gray-500 font-medium truncate">Pencapaian</p>
-                <p className="text-xs sm:text-lg font-bold text-gray-900 truncate">
-                  {(() => {
-                    const totalT = plantsWithData.reduce((s, p) => s + p!.totalTarget, 0);
-                    const totalR = plantsWithData.reduce((s, p) => s + p!.plantRealisasi, 0);
-                    return totalT > 0
-                      ? Math.round((totalR / totalT) * 100 * 10) / 10
-                      : 0;
-                  })()}%
-                </p>
-              </div>
-            </div>
-          </div>
+          </>
         )}
 
         {/* ── Tabel Tahunan ── */}
