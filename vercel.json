@@ -1,0 +1,15 @@
+{
+  "redirects": [
+    {
+      "source": "/(.*)",
+      "has": [
+        {
+          "type": "host",
+          "value": "rmix-pocketnui.vercel.app"
+        }
+      ],
+      "destination": "https://rmix-pocketnui.web.id/$1",
+      "permanent": true
+    }
+  ]
+}
