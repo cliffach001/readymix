@@ -6,10 +6,14 @@ import {
   useState,
   useCallback,
   useEffect,
+  useRef,
   type ReactNode,
 } from "react";
 import type { Role, AuthUser } from "@/lib/auth-types";
 import { STORAGE_KEY_AUTH } from "@/lib/auth-config";
+
+const INACTIVITY_TIMEOUT = 10 * 60 * 1000; // 10 menit
+const CHECK_INTERVAL = 30 * 1000; // cek setiap 30 detik
 
 // ============================================================
 // Auth Context — Login/logout with localStorage persistence
@@ -68,6 +72,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     setUser(null);
   }, []);
+
+  // ── Inactivity auto-logout ──
+  const lastActivityRef = useRef<number>(Date.now());
+
+  useEffect(() => {
+    if (!user) return; // hanya jalan saat user terautentikasi
+
+    const events = ["mousemove", "mousedown", "click", "keydown", "keyup", "scroll", "touchstart", "touchmove", "wheel"];
+
+    const handleActivity = () => {
+      lastActivityRef.current = Date.now();
+    };
+
+    // Register event listeners
+    events.forEach((ev) => window.addEventListener(ev, handleActivity, { passive: true }));
+
+    // Periodic check every 30 detik
+    const intervalId = setInterval(() => {
+      const elapsed = Date.now() - lastActivityRef.current;
+      if (elapsed >= INACTIVITY_TIMEOUT) {
+        logout();
+      }
+    }, CHECK_INTERVAL);
+
+    return () => {
+      events.forEach((ev) => window.removeEventListener(ev, handleActivity));
+      clearInterval(intervalId);
+    };
+  }, [user, logout]);
 
   return (
     <AuthContext.Provider
