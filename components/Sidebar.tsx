@@ -19,11 +19,6 @@ import { getAccessibleRoutes, ROLE_LABELS, getPlantName, PLANTS } from "@/lib/au
 import type { RouteKey } from "@/lib/auth-types";
 
 
-interface SidebarProps {
-  mobileOpen: boolean;
-  onToggleMobile: () => void;
-}
-
 const menuItems = [
   {
     title: "Dashboard",
@@ -52,7 +47,7 @@ const menuItems = [
   },
 ];
 
-export default function Sidebar({ mobileOpen, onToggleMobile }: SidebarProps) {
+export default function Sidebar() {
   const pathname = usePathname();
   const { user } = useAuth();
   const [showPlants, setShowPlants] = useState(false);
@@ -111,7 +106,6 @@ export default function Sidebar({ mobileOpen, onToggleMobile }: SidebarProps) {
                   <Link
                     key={dashboardItem.href}
                     href={dashboardItem.href}
-                    onClick={onToggleMobile}
                     className={cn(
                       "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
                       isActive
@@ -155,8 +149,7 @@ export default function Sidebar({ mobileOpen, onToggleMobile }: SidebarProps) {
                           <Link
                             key={plant.code}
                             href={`/plant/${plant.code}`}
-                            onClick={onToggleMobile}
-                            className={cn(
+                                    className={cn(
                               "flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-all duration-200",
                               isPlantActive
                                 ? "bg-white/15 text-white"
@@ -182,7 +175,6 @@ export default function Sidebar({ mobileOpen, onToggleMobile }: SidebarProps) {
                   <Link
                     key={item.href}
                     href={item.href}
-                    onClick={onToggleMobile}
                     className={cn(
                       "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
                       isActive
@@ -204,25 +196,8 @@ export default function Sidebar({ mobileOpen, onToggleMobile }: SidebarProps) {
   );
 
   return (
-    <>
-      {/* ── Mobile Backdrop ── */}
-      {mobileOpen && (
-        <div
-          className="fixed inset-0 z-30 bg-black/40 lg:hidden"
-          onClick={onToggleMobile}
-        />
-      )}
-
-      {/* ── Sidebar (Desktop: always visible, Mobile: slide-over) ── */}
-      <aside
-        className={cn(
-          "fixed left-0 top-0 z-40 h-screen w-[var(--sidebar-width)] bg-[#F35b04] text-white flex-col transition-transform duration-300",
-          "lg:flex",
-          mobileOpen ? "flex" : "hidden lg:flex"
-        )}
-      >
-        {sidebarContent}
-      </aside>
-    </>
+    <aside className="fixed left-0 top-0 z-40 h-screen w-[var(--sidebar-width)] bg-[#F35b04] text-white flex-col hidden lg:flex">
+      {sidebarContent}
+    </aside>
   );
 }
