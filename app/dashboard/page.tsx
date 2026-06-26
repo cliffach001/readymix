@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useBackgroundRefresh } from "@/lib/use-background-refresh";
 import Link from "next/link";
 import ProduksiHarianChart from "@/components/dashboard/ProduksiHarianChart";
 import ProduksiBulananChart from "@/components/dashboard/ProduksiBulananChart";
@@ -79,30 +80,22 @@ export default function DashboardPage() {
   const unitKerja = user?.unitKerja;
   const [selectedMonth, setSelectedMonth] = useState(CURRENT_MONTH);
   const [selectedYear, setSelectedYear] = useState(CURRENT_YEAR);
-  const [plantRealisasi, setPlantRealisasi] = useState<Record<string, number>>({});
-  const [plantRKAP, setPlantRKAP] = useState<Record<string, number>>({});
-  const [plants, setPlants] = useState<PlantRow[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    setLoading(true);
-    Promise.all([
+  const { data: dashboardData, loading, refresh } = useBackgroundRefresh(async () => {
+    const [volumes, targets, plantsData] = await Promise.all([
       fetchVolumePerPlantBulanan(selectedMonth, selectedYear),
       fetchRKAPBulanan(selectedMonth, selectedYear),
       fetchPlants(),
-    ])
-      .then(([volumes, targets, plantsData]) => {
-        const volMap: Record<string, number> = {};
-        volumes.forEach((v) => (volMap[v.plant_code] = v.volume));
-        setPlantRealisasi(volMap);
-        const rkapMap: Record<string, number> = {};
-        targets.forEach((t) => (rkapMap[t.plant_code] = t.target));
-        setPlantRKAP(rkapMap);
-        setPlants(plantsData);
-      })
-      .catch(console.error)
-      .finally(() => setLoading(false));
+    ]);
+    const volMap: Record<string, number> = {};
+    volumes.forEach((v) => (volMap[v.plant_code] = v.volume));
+    const rkapMap: Record<string, number> = {};
+    targets.forEach((t) => (rkapMap[t.plant_code] = t.target));
+    return { volMap, rkapMap, plantsData };
   }, [selectedMonth, selectedYear]);
+
+  const plantRealisasi = dashboardData?.volMap ?? {};
+  const plantRKAP = dashboardData?.rkapMap ?? {};
+  const plants = dashboardData?.plantsData ?? [];
 
   // Simpan filter ke localStorage untuk digunakan halaman lain
   useEffect(() => {

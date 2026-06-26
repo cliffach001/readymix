@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   fetchUsers,
   createUser,
@@ -12,12 +12,11 @@ import { ROLE_LABELS, PLANTS, getPlantName } from "@/lib/auth-config";
 import type { Role } from "@/lib/auth-types";
 import { Plus, Pencil, Trash2, X, Check } from "lucide-react";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import { useBackgroundRefresh } from "@/lib/use-background-refresh";
 
 type RoleKey = keyof typeof ROLE_LABELS;
 
 export default function KelolaPenggunaPage() {
-  const [users, setUsers] = useState<UserRecord[]>([]);
-  const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
@@ -30,16 +29,12 @@ export default function KelolaPenggunaPage() {
   const [active, setActive] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  const loadUsers = () => {
-    fetchUsers()
-      .then(setUsers)
-      .catch(console.error)
-      .finally(() => setLoading(false));
-  };
-
-  useEffect(() => {
-    loadUsers();
-  }, []);
+  const { data: usersData, loading, refresh } = useBackgroundRefresh<UserRecord[]>(
+    fetchUsers,
+    [],
+    30_000
+  );
+  const users = usersData ?? [];
 
   const resetForm = () => {
     setUsername("");
@@ -91,7 +86,7 @@ export default function KelolaPenggunaPage() {
         });
       }
       resetForm();
-      loadUsers();
+      refresh();
     } catch (e) {
       console.error(e);
       alert("Gagal menyimpan data");
@@ -104,7 +99,7 @@ export default function KelolaPenggunaPage() {
     if (!confirm(`Yakin ingin menghapus pengguna "${username}"?`)) return;
     try {
       await deleteUser(id);
-      loadUsers();
+      refresh();
     } catch (e) {
       console.error(e);
       alert("Gagal menghapus data");
@@ -114,7 +109,7 @@ export default function KelolaPenggunaPage() {
   const handleToggleActive = async (user: UserRecord) => {
     try {
       await updateUser(user.id, { active: !user.active });
-      loadUsers();
+      refresh();
     } catch (e) {
       console.error(e);
     }

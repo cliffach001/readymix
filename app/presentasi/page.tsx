@@ -18,6 +18,7 @@ import {
   fetchInputDataBulanan,
 } from "@/lib/supabase-service";
 import type { RKAPRecord, RealisasiBulanan, PlantRow, InputDataRecord } from "@/lib/supabase-service";
+import { useBackgroundRefresh } from "@/lib/use-background-refresh";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { Calendar, Factory, Download } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -60,33 +61,51 @@ export default function PresentasiPage() {
   const [loadingDaily, setLoadingDaily] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    Promise.all([fetchRKAPRecords(), fetchRealisasiBulanan(), fetchPlants()])
-      .then(([recs, real, plnts]) => {
-        setRecords(recs);
-        setRealisasi(real);
-        const filteredPlants = user?.role === "marketing" && user?.unitKerja
-          ? plnts.filter((p) => p.id === user.unitKerja)
-          : plnts;
-        setPlants(filteredPlants);
-        // Auto-select plant untuk marketing
-        if (user?.role === "marketing" && user?.unitKerja) {
-          setSelectedDailyPlant(user.unitKerja);
+  const { data: initialData, loading: initialLoading } = useBackgroundRefresh(
+    () =>
+      Promise.all([fetchRKAPRecords(), fetchRealisasiBulanan(), fetchPlants()]).then(
+        ([recs, real, plnts]) => {
+          const filteredPlants =
+            user?.role === "marketing" && user?.unitKerja
+              ? plnts.filter((p) => p.id === user.unitKerja)
+              : plnts;
+          // Auto-select plant untuk marketing
+          if (user?.role === "marketing" && user?.unitKerja) {
+            setSelectedDailyPlant(user.unitKerja);
+          }
+          return { records: recs, realisasi: real, plants: filteredPlants };
         }
-      })
-      .catch(console.error)
-      .finally(() => setLoading(false));
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+      ),
+    [],
+    30_000
+  );
+
+  // Sync initial data to state
+  useEffect(() => {
+    if (initialData) {
+      setRecords(initialData.records);
+      setRealisasi(initialData.realisasi);
+      setPlants(initialData.plants);
+    }
+    setLoading(initialLoading);
+  }, [initialData, initialLoading]);
 
   // Fetch daily data when plant or month changes
+  const { data: dailyResult, loading: dailyResultLoading } = useBackgroundRefresh(
+    () => {
+      if (!selectedDailyPlant) return Promise.resolve([] as InputDataRecord[]);
+      return fetchInputDataBulanan(selectedDailyPlant, selectedMonth, selectedYear);
+    },
+    [selectedDailyPlant, selectedMonth, selectedYear],
+    30_000
+  );
+
   useEffect(() => {
-    if (!selectedDailyPlant) return;
-    setLoadingDaily(true);
-    fetchInputDataBulanan(selectedDailyPlant, selectedMonth, selectedYear)
-      .then(setDailyData)
-      .catch(console.error)
-      .finally(() => setLoadingDaily(false));
-  }, [selectedDailyPlant, selectedMonth, selectedYear]);
+    if (dailyResult) {
+      setDailyData(dailyResult);
+    }
+    setLoadingDaily(dailyResultLoading);
+  }, [dailyResult, dailyResultLoading]);
 
   // ——— Computed Data ———
 

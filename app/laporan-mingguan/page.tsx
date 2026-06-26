@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useBackgroundRefresh } from "@/lib/use-background-refresh";
 import TabelProduksi from "@/components/laporan-mingguan/TabelProduksi";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import {
@@ -29,33 +30,37 @@ export default function LaporanMingguanPage() {
   const [weeklyPlants, setWeeklyPlants] = useState<PerPlantTransactions[]>([]);
   const [availableWeeks, setAvailableWeeks] = useState<WeekInfo[]>([]);
   const [selectedWeekStart, setSelectedWeekStart] = useState("");
-  const [loading, setLoading] = useState(true);
   const [weekInfo, setWeekInfo] = useState<WeekInfo | null>(null);
   const [selectedMonth, setSelectedMonth] = useState(defaultFilter.month);
   const [selectedYear, setSelectedYear] = useState(defaultFilter.year);
 
   const isMarketingTerbatas = user?.role === "marketing" && user?.unitKerja;
 
-  // Fetch data ketika selectedWeekStart berubah
-  useEffect(() => {
-    if (selectedWeekStart) {
-      setLoading(true);
-      Promise.all([
+  // Fetch data menggunakan background refresh
+  const { data, loading } = useBackgroundRefresh(
+    async () => {
+      if (!selectedWeekStart) return null;
+      const [weekly, plantsData] = await Promise.all([
         fetchWeeklyTransactions(selectedWeekStart, selectedMonth, selectedYear),
         fetchPlants(),
-      ])
-        .then(([weekly, plantsData]) => {
-          const filteredPlants = isMarketingTerbatas
-            ? plantsData.filter((p) => p.id === user!.unitKerja)
-            : plantsData;
-          setPlants(filteredPlants);
-          setWeekInfo(weekly.weekInfo);
-          setWeeklyPlants(weekly.plants);
-        })
-        .catch(console.error)
-        .finally(() => setLoading(false));
+      ]);
+      const filteredPlants = isMarketingTerbatas
+        ? plantsData.filter((p) => p.id === user!.unitKerja)
+        : plantsData;
+      return { plants: filteredPlants, weekInfo: weekly.weekInfo, weeklyPlants: weekly.plants };
+    },
+    [selectedWeekStart, selectedMonth, selectedYear, isMarketingTerbatas],
+    30_000
+  );
+
+  // Sync data hasil fetch ke state
+  useEffect(() => {
+    if (data) {
+      setPlants(data.plants);
+      setWeekInfo(data.weekInfo);
+      setWeeklyPlants(data.weeklyPlants);
     }
-  }, [selectedWeekStart, selectedMonth, selectedYear, isMarketingTerbatas, user?.unitKerja]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [data]);
 
   // Fetch weeks ketika bulan/tahun berubah
   useEffect(() => {

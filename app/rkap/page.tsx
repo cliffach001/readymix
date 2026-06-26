@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useBackgroundRefresh } from "@/lib/use-background-refresh";
 import {
   fetchRKAPRecords,
   createRKAPRecord,
@@ -43,7 +44,6 @@ export default function RKAPPage() {
   const [records, setRecords] = useState<RKAPRecord[]>([]);
   const [realisasi, setRealisasi] = useState<RealisasiBulanan[]>([]);
   const [plants, setPlants] = useState<PlantRow[]>([]);
-  const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -56,20 +56,26 @@ export default function RKAPPage() {
   const [formBulan, setFormBulan] = useState("1");
   const [formTarget, setFormTarget] = useState("");
 
-  const loadData = () => {
-    Promise.all([fetchRKAPRecords(), fetchRealisasiBulanan(), fetchPlants()])
-      .then(([recs, real, plnts]) => {
-        setRecords(recs);
-        setRealisasi(real);
-        setPlants(isMarketing && unitKerja ? plnts.filter((p) => p.id === unitKerja) : plnts);
-      })
-      .catch(console.error)
-      .finally(() => setLoading(false));
-  };
+  const { data, loading, refresh } = useBackgroundRefresh(async () => {
+    const [recs, real, plnts] = await Promise.all([
+      fetchRKAPRecords(),
+      fetchRealisasiBulanan(),
+      fetchPlants(),
+    ]);
+    return { recs, real, plnts };
+  });
 
   useEffect(() => {
-    loadData();
-  }, []);
+    if (data) {
+      setRecords(data.recs);
+      setRealisasi(data.real);
+      setPlants(
+        isMarketing && unitKerja
+          ? data.plnts.filter((p) => p.id === unitKerja)
+          : data.plnts
+      );
+    }
+  }, [data, isMarketing, unitKerja]);
 
   const resetForm = () => {
     setFormPlant("");
@@ -123,7 +129,7 @@ export default function RKAPPage() {
         });
       }
       resetForm();
-      loadData();
+      refresh();
     } catch (e) {
       console.error(e);
       alert("Gagal menyimpan data");
@@ -136,7 +142,7 @@ export default function RKAPPage() {
     if (!confirm(`Yakin ingin menghapus RKAP untuk ${info}?`)) return;
     try {
       await deleteRKAPRecord(id);
-      loadData();
+      refresh();
     } catch (e) {
       console.error(e);
       alert("Gagal menghapus data");
