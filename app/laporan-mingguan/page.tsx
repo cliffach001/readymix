@@ -223,7 +223,7 @@ export default function LaporanMingguanPage() {
               onClick={() => setFilterPlant(plant.id)}
               className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-medium transition-all duration-200 ${
                 filterPlant === plant.id
-                  ? "bg-[#F35b04] text-white shadow-sm shadow-orange-200"
+                  ? "bg-gradient-to-r from-[#F35b04] to-orange-700 text-white shadow-sm shadow-orange-200"
                   : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50 hover:border-gray-300"
               }`}
             >

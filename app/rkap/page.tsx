@@ -229,7 +229,7 @@ export default function RKAPPage() {
                   resetForm();
                   setShowForm(true);
                 }}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#F35b04] text-white text-sm font-medium hover:bg-orange-700 transition-all shadow-sm"
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#F35b04] to-orange-700 text-white text-sm font-medium hover:from-[#F35b04] hover:to-orange-800 transition-all shadow-sm"
               >
                 <Plus className="w-4 h-4" />
                 Tambah Data
@@ -401,7 +401,7 @@ export default function RKAPPage() {
                 onClick={() => setFilterPlant(ps!.plant.id)}
                 className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-medium transition-all duration-200 ${
                   filterPlant === ps!.plant.id
-                    ? "bg-[#F35b04] text-white shadow-sm shadow-orange-200"
+                    ? "bg-gradient-to-r from-[#F35b04] to-orange-700 text-white shadow-sm shadow-orange-200"
                     : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50 hover:border-gray-300"
                 }`}
               >
@@ -685,7 +685,7 @@ export default function RKAPPage() {
                     <button
                       type="submit"
                       disabled={saving}
-                      className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#F35b04] text-white text-sm font-medium hover:bg-orange-700 transition-all disabled:opacity-50 shadow-sm"
+                      className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#F35b04] to-orange-700 text-white text-sm font-medium hover:from-[#F35b04] hover:to-orange-800 transition-all disabled:opacity-50 shadow-sm"
                     >
                       <Check className="w-4 h-4" />
                       {saving ? "Menyimpan..." : "Simpan"}

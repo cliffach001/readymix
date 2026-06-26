@@ -58,7 +58,7 @@ function LayoutContent({ children }: { children: ReactNode }) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-12 h-12 rounded-xl bg-[#F35b04] animate-pulse" />
+          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#F35b04] to-orange-700 animate-pulse" />
           <p className="text-sm text-gray-400">Memuat...</p>
         </div>
       </div>
@@ -150,7 +150,7 @@ function LayoutContent({ children }: { children: ReactNode }) {
       </div>
 
       {/* ── Bottom Nav (Mobile Only) ── */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 flex lg:hidden items-center justify-around bg-[#F35b04] shadow-[0_-4px_20px_rgba(0,0,0,0.15)] px-2 py-1 safe-area-bottom">
+      <nav className="fixed bottom-0 left-0 right-0 z-50 flex lg:hidden items-center justify-around bg-gradient-to-r from-[#F35b04] to-orange-700 shadow-[0_-4px_20px_rgba(0,0,0,0.15)] px-2 py-1 safe-area-bottom">
         {filteredItems.map((item) => {
           const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
           const Icon = item.icon;

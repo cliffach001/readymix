@@ -138,7 +138,7 @@ export default function KelolaPenggunaPage() {
             resetForm();
             setShowForm(true);
           }}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#F35b04] text-white text-sm font-medium hover:bg-orange-700 transition-all shadow-sm"
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#F35b04] to-orange-700 text-white text-sm font-medium hover:from-[#F35b04] hover:to-orange-800 transition-all shadow-sm"
         >
           <Plus className="w-4 h-4" />
           Tambah Pengguna
@@ -250,7 +250,7 @@ export default function KelolaPenggunaPage() {
               <button
                 type="submit"
                 disabled={saving}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#F35b04] text-white text-sm font-medium hover:bg-orange-700 transition-all disabled:opacity-50"
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-[#F35b04] to-orange-700 text-white text-sm font-medium hover:from-[#F35b04] hover:to-orange-800 transition-all disabled:opacity-50"
               >
                 <Check className="w-4 h-4" />
                 {saving ? "Menyimpan..." : "Simpan"}

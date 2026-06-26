@@ -196,7 +196,7 @@ export default function Sidebar() {
   );
 
   return (
-    <aside className="fixed left-0 top-0 z-40 h-screen w-[var(--sidebar-width)] bg-[#F35b04] text-white flex-col hidden lg:flex">
+    <aside className="fixed left-0 top-0 z-40 h-screen w-[var(--sidebar-width)] bg-gradient-to-b from-[#F35b04] to-orange-700 text-white flex-col hidden lg:flex">
       {sidebarContent}
     </aside>
   );

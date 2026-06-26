@@ -258,7 +258,7 @@ export default function PlantDetailPage() {
             <p className="text-gray-400">{error || "Plant tidak ditemukan"}</p>
             <button
               onClick={() => router.push("/dashboard")}
-              className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#F35b04] text-white text-sm font-medium hover:bg-orange-700"
+              className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-[#F35b04] to-orange-700 text-white text-sm font-medium hover:from-[#F35b04] hover:to-orange-800"
             >
               <ArrowLeft className="w-4 h-4" />
               Kembali ke Dashboard
@@ -391,7 +391,7 @@ export default function PlantDetailPage() {
                     resetForm();
                     setShowModal(true);
                   }}
-                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#F35b04] text-white text-xs sm:text-sm font-medium hover:bg-orange-700 transition-all shadow-sm"
+                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-gradient-to-r from-[#F35b04] to-orange-700 text-white text-xs sm:text-sm font-medium hover:from-[#F35b04] hover:to-orange-800 transition-all shadow-sm"
                 >
                   <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                   <span className="hidden sm:inline">Input Data</span>
@@ -543,7 +543,7 @@ export default function PlantDetailPage() {
                         onClick={() => setCurrentPage(page)}
                         className={`px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-all ${
                           page === currentPage
-                            ? "bg-[#F35b04] text-white border-[#F35b04]"
+                            ? "bg-gradient-to-r from-[#F35b04] to-orange-700 text-white border-[#F35b04]"
                             : "border-gray-200 hover:bg-gray-50"
                         }`}
                       >
@@ -759,7 +759,7 @@ export default function PlantDetailPage() {
                 {/* Actions */}
                 <div className="flex items-center gap-3 pt-2">
                   <button type="submit" disabled={saving}
-                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#F35b04] text-white text-sm font-medium rounded-xl hover:bg-orange-700 transition-all disabled:opacity-50 shadow-sm">
+                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[#F35b04] to-orange-700 text-white text-sm font-medium rounded-xl hover:from-[#F35b04] hover:to-orange-800 transition-all disabled:opacity-50 shadow-sm">
                     <Save className="w-4 h-4" />
                     {saving ? "Menyimpan..." : "Simpan"}
                   </button>
