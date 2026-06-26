@@ -41,7 +41,7 @@ const MONTHS = [
 ];
 
 const MONTH_SHORT = ["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"];
-const COLORS = ["#FF6600", "#10b981", "#3b82f6", "#8b5cf6", "#f59e0b", "#ef4444"];
+const COLORS = ["#F35b04", "#10b981", "#3b82f6", "#8b5cf6", "#f59e0b", "#ef4444"];
 const CURRENT_YEAR = new Date().getFullYear();
 
 function formatCurrency(val: number) {
@@ -56,7 +56,7 @@ export default function PresentasiPage() {
   const [realisasi, setRealisasi] = useState<RealisasiBulanan[]>([]);
   const [plants, setPlants] = useState<PlantRow[]>([]);
   const [dailyData, setDailyData] = useState<InputDataRecord[]>([]);
-  const [selectedDailyPlant, setSelectedDailyPlant] = useState("");
+  const [selectedDailyPlant, setSelectedDailyPlant] = useState("kendari");
   const [loadingDaily, setLoadingDaily] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -176,88 +176,158 @@ export default function PresentasiPage() {
     if (!selectedDailyPlant || dailyData.length === 0) return;
     const plantName = plants.find((p) => p.id === selectedDailyPlant)?.nama.replace("Ready Mix ", "") ?? selectedDailyPlant;
 
-    const pdf = new jsPDF("p", "mm", "a4");
+    const pdf = new jsPDF("l", "mm", "a4");
     const pageW = pdf.internal.pageSize.getWidth();
-    const margin = 15;
-    let totalPages = 1;
+    const pageH = pdf.internal.pageSize.getHeight();
+    const margin = 20; // 20mm = 2cm (kiri & kanan)
+    let totalPages = 0;
 
     const now = new Date();
     const tglStr = now.toLocaleDateString("id-ID", { day: "2-digit", month: "2-digit", year: "numeric" }).split("/").join(".");
     const jamStr = now.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
     const namaLengkap = user?.namaLengkap ?? user?.email ?? "unknown";
 
+    const primaryRGB: [number, number, number] = [0xE3, 0x48, 0x03]; // #F35b04 → RGB
+
     // ── Header setiap halaman ──
     const addHeader = () => {
-      pdf.setFontSize(14);
+      pdf.setFillColor(...primaryRGB);
+      pdf.rect(0, 0, pageW, 3.5, "F");
+
+      pdf.setTextColor(60);
+      pdf.setFontSize(15);
       pdf.setFont("helvetica", "bold");
-      pdf.text("Penjualan Ready Mix", pageW / 2, margin, { align: "center" });
-      pdf.setFontSize(10);
+      pdf.text("Penjualan Ready Mix", pageW / 2, margin + 2, { align: "center" });
+
+      pdf.setFontSize(9);
       pdf.setFont("helvetica", "normal");
-      pdf.text("PT. Prima Karya Manunggal", pageW / 2, margin + 7, { align: "center" });
+      pdf.setTextColor(100);
+      pdf.text("PT. Prima Karya Manunggal", pageW / 2, margin + 9, { align: "center" });
+
       pdf.setFontSize(8);
-      pdf.text(`Periode laporan: ${monthLabel} ${selectedYear} — Plant: ${plantName}`, pageW / 2, margin + 13, { align: "center" });
+      pdf.setTextColor(130);
+      pdf.text(`Periode: ${monthLabel} ${selectedYear}  |  Plant: ${plantName}`, pageW / 2, margin + 15, { align: "center" });
+
       pdf.setDrawColor(200);
-      pdf.line(margin, margin + 17, pageW - margin, margin + 17);
+      pdf.setLineWidth(0.5);
+      pdf.line(margin, margin + 18.5, pageW - margin, margin + 18.5);
+    };
+
+    // ── Footer setiap halaman ──
+    const addFooter = (pageNum: number) => {
+      const fy = pageH - 8;
+      pdf.setFontSize(6.5);
+      pdf.setFont("helvetica", "normal");
+      pdf.setTextColor(150);
+      pdf.text(`© 2026 Penjualan Ready Mix — design by NUI6184`, margin, fy, { align: "left" });
+      pdf.text(`Hal. ${pageNum} dari ${totalPages}`, pageW / 2, fy, { align: "center" });
+      pdf.text(`Diekspor pada: ${tglStr} ${jamStr} — Oleh: ${namaLengkap}`, pageW - margin, fy, { align: "right" });
     };
 
     addHeader();
 
-    // ── Tabel autoTable dengan pagination ──
+    // ── Tabel ──
     const tableRows = dailyData.map((r) => [
       r.tanggal,
       r.nama_pelanggan,
       r.uraian_pekerjaan,
       r.type || "-",
-      r.volume,
-      r.harga_satuan,
-      r.jumlah_harga,
-      r.sewa_cp,
-      r.total_harga,
+      r.volume.toLocaleString("id-ID"),
+      `Rp ${formatCurrency(r.harga_satuan)}`,
+      `Rp ${formatCurrency(r.jumlah_harga)}`,
+      r.sewa_cp > 0 ? `Rp ${formatCurrency(r.sewa_cp)}` : "-",
+      `Rp ${formatCurrency(r.total_harga)}`,
       r.keterangan || "",
     ]);
 
+    let tableFinalY = margin + 22;
+
+    // Lebar tersedia: 297mm - 20mm - 20mm = 257mm untuk 10 kolom
     autoTable(pdf, {
-      head: [["Tanggal", "Pelanggan", "Pekerjaan", "Type", "Vol (m³)", "Harga Satuan", "Jumlah Harga", "Sewa CP", "Total", "Keterangan"]],
+      head: [["Tanggal", "Pelanggan", "Pekerjaan", "Type", "Volume", "Harga Satuan", "Jumlah Harga", "Sewa CP", "Total", "Ket."]],
       body: tableRows,
-      startY: margin + 20,
-      margin: { top: margin + 20, bottom: margin + 10 },
-      styles: { fontSize: 7, cellPadding: 2 },
-      headStyles: { fillColor: [255, 102, 0], textColor: 255, fontStyle: "bold", fontSize: 7 },
+      startY: margin + 22,
+      margin: { left: margin, right: margin, top: margin + 24, bottom: 18 },
+      tableWidth: "auto",
+      styles: {
+        fontSize: 7,
+        cellPadding: 2.5,
+        lineColor: [210, 210, 210],
+        lineWidth: 0.2,
+      },
+      headStyles: {
+        fillColor: primaryRGB,
+        textColor: 255,
+        fontStyle: "bold",
+        fontSize: 7.5,
+        halign: "center",
+      },
+      bodyStyles: {
+        textColor: 60,
+      },
+      alternateRowStyles: {
+        fillColor: [246, 246, 246],
+      },
       columnStyles: {
-        0: { cellWidth: 22 },
-        1: { cellWidth: 28 },
-        2: { cellWidth: 28 },
-        3: { cellWidth: 16 },
-        4: { cellWidth: 16, halign: "right" },
-        5: { cellWidth: 22, halign: "right" },
-        6: { cellWidth: 24, halign: "right" },
-        7: { cellWidth: 18, halign: "right" },
-        8: { cellWidth: 22, halign: "right" },
+        0: { cellWidth: 24 },
+        1: { cellWidth: 34 },
+        2: { cellWidth: 34 },
+        3: { cellWidth: 18 },
+        4: { cellWidth: 22, halign: "right" },
+        5: { cellWidth: 28, halign: "right" },
+        6: { cellWidth: 28, halign: "right" },
+        7: { cellWidth: 22, halign: "right" },
+        8: { cellWidth: 25, halign: "right" },
+        9: { cellWidth: 22 },
       },
       didDrawPage: (data: any) => {
-        const pageNum = data.pageNumber;
         totalPages = pdf.getNumberOfPages();
-        const fy = pdf.internal.pageSize.getHeight() - 8;
-        pdf.setFontSize(7);
-        pdf.setFont("helvetica", "italic");
-        pdf.setTextColor(150);
-        pdf.text(`© 2026 PT. Prima Karya Manunggal — design by nurirvansyah`, margin, fy, { align: "left" });
-        pdf.text(`Hal. ${pageNum} dari ?`, pageW / 2, fy, { align: "center" });
-        pdf.text(`Diekspor pada: ${tglStr} ${jamStr} — Oleh: ${namaLengkap}`, pageW - margin, fy, { align: "right" });
+        addFooter(data.pageNumber);
       },
     });
 
-    // Perbaiki total halaman di footer
+    // ── Signature block di halaman terakhir ──
+    totalPages = pdf.getNumberOfPages();
+    const lastAutoTable = (pdf as any).lastAutoTable;
+    const finalY = lastAutoTable ? lastAutoTable.finalY + 8 : margin + 22;
+
+    const drawSignature = (sigY: number) => {
+      const sigLeftX = margin + 10; // rata kiri dengan sedikit space
+      const sigW = 70;
+      pdf.setDrawColor(200);
+      pdf.setLineWidth(0.3);
+      pdf.line(sigLeftX, sigY, sigLeftX + sigW, sigY);
+      pdf.setFontSize(9);
+      pdf.setFont("helvetica", "italic");
+      pdf.setTextColor(150);
+      pdf.text("Approved by", sigLeftX, sigY + 8, { align: "left" });
+      pdf.setFontSize(10);
+      pdf.setFont("helvetica", "bold");
+      pdf.setTextColor(60);
+      pdf.text("Seksi Penjualan Ready Mix", sigLeftX, sigY + 17, { align: "left" });
+    };
+
+    const sigSpace = 30;
+    if (finalY + sigSpace > pageH - 18) {
+      pdf.addPage();
+      addHeader();
+      addFooter(totalPages + 1);
+      totalPages = pdf.getNumberOfPages();
+      for (let i = 1; i <= totalPages; i++) {
+        pdf.setPage(i);
+        addFooter(i);
+      }
+      pdf.setPage(totalPages);
+      drawSignature(margin + 22);
+    } else {
+      drawSignature(finalY);
+    }
+
+    // Final pass: perbaiki footer dengan total halaman yang benar
     totalPages = pdf.getNumberOfPages();
     for (let i = 1; i <= totalPages; i++) {
       pdf.setPage(i);
-      const fy = pdf.internal.pageSize.getHeight() - 8;
-      pdf.setFontSize(7);
-      pdf.setFont("helvetica", "italic");
-      pdf.setTextColor(150);
-      pdf.text(`© 2026 PT. Prima Karya Manunggal — design by nurirvansyah`, margin, fy, { align: "left" });
-      pdf.text(`Hal. ${i} dari ${totalPages}`, pageW / 2, fy, { align: "center" });
-      pdf.text(`Diekspor pada: ${tglStr} ${jamStr} — Oleh: ${namaLengkap}`, pageW - margin, fy, { align: "right" });
+      addFooter(i);
     }
 
     pdf.save(`Produksi_Harian_${plantName}_${monthLabel}_${selectedYear}.pdf`);
@@ -294,7 +364,7 @@ export default function PresentasiPage() {
             <select
               value={selectedMonth}
               onChange={(e) => setSelectedMonth(Number(e.target.value))}
-              className="px-3 py-2 rounded-xl border border-gray-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#FF6600]/20 focus:border-[#FF6600]"
+              className="px-3 py-2 rounded-xl border border-gray-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#F35b04]/20 focus:border-[#F35b04]"
             >
               {MONTHS.map((m) => (
                 <option key={m.num} value={m.num}>{m.label}</option>
@@ -303,7 +373,7 @@ export default function PresentasiPage() {
             <select
               value={selectedYear}
               onChange={(e) => setSelectedYear(Number(e.target.value))}
-              className="px-3 py-2 rounded-xl border border-gray-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#FF6600]/20 focus:border-[#FF6600]"
+              className="px-3 py-2 rounded-xl border border-gray-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#F35b04]/20 focus:border-[#F35b04]"
             >
               {[CURRENT_YEAR, CURRENT_YEAR - 1, CURRENT_YEAR - 2].map((y) => (
                 <option key={y} value={y}>{y}</option>
@@ -315,7 +385,7 @@ export default function PresentasiPage() {
 
         {/* ── Stat Cards ── */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <div className="card p-4 border-l-4 border-l-[#FF6600]">
+          <div className="card p-4 border-l-4 border-l-[#F35b04]">
             <p className="text-[10px] sm:text-xs text-gray-500 font-medium">RKAP {monthLabel}</p>
             <p className="text-sm sm:text-lg font-bold text-gray-900">{formatCurrency(totalMonth.rkap)} m³</p>
           </div>
@@ -323,7 +393,7 @@ export default function PresentasiPage() {
             <p className="text-[10px] sm:text-xs text-gray-500 font-medium">Realisasi {monthLabel}</p>
             <p className="text-sm sm:text-lg font-bold text-gray-900">{formatCurrency(totalMonth.real)} m³</p>
           </div>
-          <div className="card p-4 border-l-4 border-l-blue-500">
+          <div className="card p-4 border-l-4 border-l-[#F35b04]">
             <p className="text-[10px] sm:text-xs text-gray-500 font-medium">RKAP s/d {monthLabel}</p>
             <p className="text-sm sm:text-lg font-bold text-gray-900">{formatCurrency(totalYTD.rkap)} m³</p>
           </div>
@@ -349,7 +419,7 @@ export default function PresentasiPage() {
                   <YAxis tick={{ fontSize: 10, fill: "#64748b" }} tickLine={false} axisLine={{ stroke: "#e2e8f0" }} label={{ value: "m³", angle: -90, position: "insideLeft", style: { fontSize: 10, fill: "#94a3b8" } }} />
                   <Tooltip contentStyle={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: "8px", fontSize: 12 }} />
                   <Legend wrapperStyle={{ fontSize: 11 }} />
-                  <Bar dataKey="RKAP" fill="#FF6600" radius={[4, 4, 0, 0]} maxBarSize={24} />
+                  <Bar dataKey="RKAP" fill="#F35b04" radius={[4, 4, 0, 0]} maxBarSize={24} />
                   <Bar dataKey="Realisasi" fill="#10b981" radius={[4, 4, 0, 0]} maxBarSize={24} />
                 </BarChart>
               </ResponsiveContainer>
@@ -370,7 +440,7 @@ export default function PresentasiPage() {
                   <YAxis tick={{ fontSize: 10, fill: "#64748b" }} tickLine={false} axisLine={{ stroke: "#e2e8f0" }} label={{ value: "m³", angle: -90, position: "insideLeft", style: { fontSize: 10, fill: "#94a3b8" } }} />
                   <Tooltip contentStyle={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: "8px", fontSize: 12 }} />
                   <Legend wrapperStyle={{ fontSize: 11 }} />
-                  <Bar dataKey="RKAP" fill="#FF6600" radius={[4, 4, 0, 0]} maxBarSize={40} />
+                  <Bar dataKey="RKAP" fill="#F35b04" radius={[4, 4, 0, 0]} maxBarSize={40} />
                   <Bar dataKey="Realisasi" fill="#10b981" radius={[4, 4, 0, 0]} maxBarSize={40} />
                 </BarChart>
               </ResponsiveContainer>
@@ -390,7 +460,7 @@ export default function PresentasiPage() {
                 <tr className="bg-gray-50 border-b border-gray-200">
                   <th className="text-left px-3 py-3 font-medium text-gray-600 text-[11px]" rowSpan={2}>Plant</th>
                   <th className="text-center px-3 py-3 font-medium text-gray-600 text-[11px] bg-orange-50/50" colSpan={4}>{monthLabel}</th>
-                  <th className="text-center px-3 py-3 font-medium text-gray-600 text-[11px] bg-blue-50/50" colSpan={4}>s/d {monthLabel}</th>
+                  <th className="text-center px-3 py-3 font-medium text-gray-600 text-[11px] bg-orange-50/50" colSpan={4}>s/d {monthLabel}</th>
                 </tr>
                 <tr className="bg-gray-50 border-b border-gray-200">
                   <th className="text-right px-2 py-2 font-medium text-gray-500 text-[10px]">RKAP</th>
@@ -509,7 +579,7 @@ export default function PresentasiPage() {
                       onClick={() => setSelectedDailyPlant(plant.id)}
                       className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-medium transition-all duration-200 ${
                         isActive
-                          ? "bg-[#FF6600] text-white shadow-sm shadow-orange-200"
+                          ? "bg-[#F35b04] text-white shadow-sm shadow-orange-200"
                           : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50 hover:border-gray-300"
                       }`}
                     >

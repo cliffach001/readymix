@@ -44,9 +44,9 @@ function PlantCard({
   return (
     <Link
       href={`/plant/${id}`}
-      className="card p-5 flex items-center gap-4 border-l-4 border-l-[#FF6600] hover:shadow-md hover:border-l-[#e55a00] transition-all group"
+      className="card p-5 flex items-center gap-4 border-l-4 border-l-[#F35b04] hover:shadow-md hover:border-l-[#e55a00] transition-all group"
     >
-      <Factory className="size-8 text-[#FF6600]" strokeWidth={1.5} />
+      <Factory className="size-8 text-[#F35b04]" strokeWidth={1.5} />
       <div className="flex-1 min-w-0">
         <p className="text-sm text-gray-500 font-medium">{nama.replace("Ready Mix ", "")}</p>
         <p className="text-xl font-bold text-gray-900">
@@ -132,7 +132,7 @@ export default function DashboardPage() {
             <select
               value={selectedMonth}
               onChange={(e) => setSelectedMonth(Number(e.target.value))}
-              className="px-3 py-2 rounded-xl border border-gray-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#FF6600]/20 focus:border-[#FF6600]"
+              className="px-3 py-2 rounded-xl border border-gray-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#F35b04]/20 focus:border-[#F35b04]"
             >
               {MONTHS.map((m) => (
                 <option key={m.num} value={m.num}>
@@ -143,7 +143,7 @@ export default function DashboardPage() {
             <select
               value={selectedYear}
               onChange={(e) => setSelectedYear(Number(e.target.value))}
-              className="px-3 py-2 rounded-xl border border-gray-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#FF6600]/20 focus:border-[#FF6600]"
+              className="px-3 py-2 rounded-xl border border-gray-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#F35b04]/20 focus:border-[#F35b04]"
             >
               {[CURRENT_YEAR, CURRENT_YEAR - 1, CURRENT_YEAR - 2].map((y) => (
                 <option key={y} value={y}>

@@ -15,7 +15,7 @@ const config: Config = {
           200: "#fed7aa",
           300: "#fdba74",
           400: "#fb923c",
-          500: "#FF6600",
+          500: "#F35b04",
           600: "#ea580c",
           700: "#c2410c",
           800: "#9a3412",
@@ -23,7 +23,7 @@ const config: Config = {
           950: "#431407",
         },
         sidebar: {
-          DEFAULT: "#FF6600",
+          DEFAULT: "#F35b04",
           hover: "#e65c00",
           active: "#cc5200",
         },

@@ -258,7 +258,7 @@ export default function PlantDetailPage() {
             <p className="text-gray-400">{error || "Plant tidak ditemukan"}</p>
             <button
               onClick={() => router.push("/dashboard")}
-              className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#FF6600] text-white text-sm font-medium hover:bg-orange-700"
+              className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#F35b04] text-white text-sm font-medium hover:bg-orange-700"
             >
               <ArrowLeft className="w-4 h-4" />
               Kembali ke Dashboard
@@ -322,9 +322,9 @@ export default function PlantDetailPage() {
 
         {/* ── Stat Cards ── */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-          <div className="card p-4 sm:p-5 flex items-center gap-3 border-l-4 border-l-[#FF6600]">
+          <div className="card p-4 sm:p-5 flex items-center gap-3 border-l-4 border-l-[#F35b04]">
             <div className="w-10 h-10 rounded-lg bg-orange-100 flex items-center justify-center shrink-0">
-              <Package className="w-5 h-5 text-[#FF6600]" />
+              <Package className="w-5 h-5 text-[#F35b04]" />
             </div>
             <div className="min-w-0">
               <p className="text-[10px] sm:text-xs text-gray-500 font-medium">Total Volume</p>
@@ -379,7 +379,7 @@ export default function PlantDetailPage() {
                   value={searchTerm}
                   onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
                   placeholder="Cari pelanggan, pekerjaan, type..."
-                  className="w-48 sm:w-56 px-3 py-2 pl-8 border border-gray-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-[#FF6600]/20 focus:border-[#FF6600]"
+                  className="w-48 sm:w-56 px-3 py-2 pl-8 border border-gray-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-[#F35b04]/20 focus:border-[#F35b04]"
                 />
                 <svg className="absolute left-2.5 top-2.5 w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -391,7 +391,7 @@ export default function PlantDetailPage() {
                     resetForm();
                     setShowModal(true);
                   }}
-                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#FF6600] text-white text-xs sm:text-sm font-medium hover:bg-orange-700 transition-all shadow-sm"
+                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#F35b04] text-white text-xs sm:text-sm font-medium hover:bg-orange-700 transition-all shadow-sm"
                 >
                   <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                   <span className="hidden sm:inline">Input Data</span>
@@ -497,7 +497,7 @@ export default function PlantDetailPage() {
               </tbody>
               {searchTerm.length > 0 && filteredData.length > 0 && (
                 <tfoot>
-                  <tr className="bg-orange-50 border-t-2 border-[#FF6600]/30">
+                  <tr className="bg-orange-50 border-t-2 border-[#F35b04]/30">
                     <td colSpan={5} className="px-2 sm:px-4 py-3 text-gray-900 font-bold whitespace-nowrap text-xs sm:text-sm">
                       Total Pencarian
                     </td>
@@ -511,7 +511,7 @@ export default function PlantDetailPage() {
                     <td className={`px-2 sm:px-4 py-3 text-right font-bold tabular-nums whitespace-nowrap text-xs sm:text-sm ${filteredSewaCP > 0 ? "text-gray-900" : "text-gray-400"}`}>
                       {filteredSewaCP > 0 ? formatCurrency(filteredSewaCP) : "-"}
                     </td>
-                    <td className="px-2 sm:px-4 py-3 text-right font-bold text-[#FF6600] tabular-nums whitespace-nowrap text-xs sm:text-sm">
+                    <td className="px-2 sm:px-4 py-3 text-right font-bold text-[#F35b04] tabular-nums whitespace-nowrap text-xs sm:text-sm">
                       {formatCurrency(filteredTotal)}
                     </td>
                     {(isAdmin || isMarketing) && <td className="px-2 sm:px-4 py-3"></td>}
@@ -543,7 +543,7 @@ export default function PlantDetailPage() {
                         onClick={() => setCurrentPage(page)}
                         className={`px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-all ${
                           page === currentPage
-                            ? "bg-[#FF6600] text-white border-[#FF6600]"
+                            ? "bg-[#F35b04] text-white border-[#F35b04]"
                             : "border-gray-200 hover:bg-gray-50"
                         }`}
                       >
@@ -677,13 +677,13 @@ export default function PlantDetailPage() {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Tanggal <span className="text-red-500">*</span></label>
                     <input type="date" value={form.tanggal} onChange={(e) => updateForm("tanggal", e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#FF6600]/20 focus:border-[#FF6600]" required />
+                      className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#F35b04]/20 focus:border-[#F35b04]" required />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Nama Pelanggan <span className="text-red-500">*</span></label>
                     <input type="text" value={form.namaPelanggan} onChange={(e) => updateForm("namaPelanggan", e.target.value)}
                       placeholder="Cth: PT. ABC Mandiri"
-                      className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#FF6600]/20 focus:border-[#FF6600]" required />
+                      className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#F35b04]/20 focus:border-[#F35b04]" required />
                   </div>
                 </div>
 
@@ -692,7 +692,7 @@ export default function PlantDetailPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Uraian Pekerjaan <span className="text-red-500">*</span></label>
                   <textarea value={form.uraianPekerjaan} onChange={(e) => updateForm("uraianPekerjaan", e.target.value)}
                     placeholder="Cth: Pengecoran Jalan Taman Sari" rows={2}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#FF6600]/20 focus:border-[#FF6600] resize-none" required />
+                    className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#F35b04]/20 focus:border-[#F35b04] resize-none" required />
                 </div>
 
                 {/* Type + Volume + Harga Satuan */}
@@ -701,19 +701,19 @@ export default function PlantDetailPage() {
                     <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
                     <input type="text" value={form.type} onChange={(e) => updateForm("type", e.target.value)}
                       placeholder="Cth: K300, FC-25, dll"
-                      className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#FF6600]/20 focus:border-[#FF6600]" />
+                      className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#F35b04]/20 focus:border-[#F35b04]" />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Volume (m³) <span className="text-red-500">*</span></label>
                     <input type="number" value={form.volume} onChange={(e) => updateForm("volume", e.target.value)}
                       placeholder="0" min="0" step="0.01"
-                      className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#FF6600]/20 focus:border-[#FF6600]" required />
+                      className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#F35b04]/20 focus:border-[#F35b04]" required />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Harga Satuan (Rp) <span className="text-red-500">*</span></label>
                     <input type="number" value={form.hargaSatuan} onChange={(e) => updateForm("hargaSatuan", e.target.value)}
                       placeholder="0" min="0" step="100"
-                      className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#FF6600]/20 focus:border-[#FF6600]" required />
+                      className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#F35b04]/20 focus:border-[#F35b04]" required />
                   </div>
                 </div>
 
@@ -722,7 +722,7 @@ export default function PlantDetailPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Sewa CP / Pompa (Rp)</label>
                   <input type="number" value={form.sewaCP} onChange={(e) => updateForm("sewaCP", e.target.value)}
                     placeholder="0" min="0" step="1000"
-                    className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#FF6600]/20 focus:border-[#FF6600]" />
+                    className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#F35b04]/20 focus:border-[#F35b04]" />
                 </div>
 
                 {/* Kalkulasi */}
@@ -732,13 +732,13 @@ export default function PlantDetailPage() {
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                       <div className="bg-white rounded-lg p-3 border border-gray-100">
                         <p className="text-[10px] text-gray-500">Jumlah Harga</p>
-                        <p className="text-sm font-bold text-[#FF6600]">Rp {formatCurrency((parseFloat(form.volume) || 0) * (parseFloat(form.hargaSatuan) || 0))}</p>
+                        <p className="text-sm font-bold text-[#F35b04]">Rp {formatCurrency((parseFloat(form.volume) || 0) * (parseFloat(form.hargaSatuan) || 0))}</p>
                       </div>
                       <div className="bg-white rounded-lg p-3 border border-gray-100">
                         <p className="text-[10px] text-gray-500">Sewa CP</p>
                         <p className="text-sm font-bold text-emerald-600">Rp {formatCurrency(parseFloat(form.sewaCP) || 0)}</p>
                       </div>
-                      <div className="bg-white rounded-lg p-3 border-2 border-[#FF6600]/20 bg-[#FF6600]/5 col-span-2 sm:col-span-1">
+                      <div className="bg-white rounded-lg p-3 border-2 border-[#F35b04]/20 bg-[#F35b04]/5 col-span-2 sm:col-span-1">
                         <p className="text-[10px] text-gray-500">Total</p>
                         <p className="text-sm font-bold text-gray-900">
                           Rp {formatCurrency(((parseFloat(form.volume) || 0) * (parseFloat(form.hargaSatuan) || 0)) + (parseFloat(form.sewaCP) || 0))}
@@ -753,13 +753,13 @@ export default function PlantDetailPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Keterangan</label>
                   <textarea value={form.keterangan} onChange={(e) => updateForm("keterangan", e.target.value)}
                     placeholder="Cth: Pembayaran termin 1, Catatan khusus, dll" rows={2}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#FF6600]/20 focus:border-[#FF6600] resize-none" />
+                    className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#F35b04]/20 focus:border-[#F35b04] resize-none" />
                 </div>
 
                 {/* Actions */}
                 <div className="flex items-center gap-3 pt-2">
                   <button type="submit" disabled={saving}
-                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#FF6600] text-white text-sm font-medium rounded-xl hover:bg-orange-700 transition-all disabled:opacity-50 shadow-sm">
+                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#F35b04] text-white text-sm font-medium rounded-xl hover:bg-orange-700 transition-all disabled:opacity-50 shadow-sm">
                     <Save className="w-4 h-4" />
                     {saving ? "Menyimpan..." : "Simpan"}
                   </button>

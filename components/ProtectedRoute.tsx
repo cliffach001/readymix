@@ -39,7 +39,7 @@ export default function ProtectedRoute({
           </p>
           <button
             onClick={() => router.push("/dashboard")}
-            className="mt-6 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#FF6600] text-white text-sm font-medium hover:bg-orange-700 transition-colors shadow-sm"
+            className="mt-6 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#F35b04] text-white text-sm font-medium hover:bg-orange-700 transition-colors shadow-sm"
           >
             Kembali ke Dashboard
           </button>

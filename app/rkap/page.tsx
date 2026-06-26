@@ -213,7 +213,7 @@ export default function RKAPPage() {
             <select
               value={filterTahun}
               onChange={(e) => setFilterTahun(e.target.value)}
-              className="px-3 py-2 rounded-xl border border-gray-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#FF6600]/20 focus:border-[#FF6600]"
+              className="px-3 py-2 rounded-xl border border-gray-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#F35b04]/20 focus:border-[#F35b04]"
             >
               {availableYears.length > 0
                 ? availableYears.map((y) => (
@@ -229,7 +229,7 @@ export default function RKAPPage() {
                   resetForm();
                   setShowForm(true);
                 }}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#FF6600] text-white text-sm font-medium hover:bg-orange-700 transition-all shadow-sm"
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#F35b04] text-white text-sm font-medium hover:bg-orange-700 transition-all shadow-sm"
               >
                 <Plus className="w-4 h-4" />
                 Tambah Data
@@ -241,7 +241,7 @@ export default function RKAPPage() {
         {/* ── Stat Cards ── */}
         {!loading && plantsWithData.length > 0 && (
           <div className="grid grid-cols-3 gap-2 sm:gap-4">
-            <div className="card p-2 sm:p-4 flex items-center gap-2 sm:gap-3 border-l-4 border-l-[#FF6600] min-w-0">
+            <div className="card p-2 sm:p-4 flex items-center gap-2 sm:gap-3 border-l-4 border-l-[#F35b04] min-w-0">
               <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-orange-100 flex items-center justify-center shrink-0 text-sm sm:text-lg">
                 🎯
               </div>
@@ -263,8 +263,8 @@ export default function RKAPPage() {
                 </p>
               </div>
             </div>
-            <div className="card p-2 sm:p-4 flex items-center gap-2 sm:gap-3 border-l-4 border-l-blue-500 min-w-0">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-blue-100 flex items-center justify-center shrink-0 text-sm sm:text-lg">
+            <div className="card p-2 sm:p-4 flex items-center gap-2 sm:gap-3 border-l-4 border-l-[#F35b04] min-w-0">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-orange-100 flex items-center justify-center shrink-0 text-sm sm:text-lg">
                 📈
               </div>
               <div className="min-w-0">
@@ -401,7 +401,7 @@ export default function RKAPPage() {
                 onClick={() => setFilterPlant(ps!.plant.id)}
                 className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-medium transition-all duration-200 ${
                   filterPlant === ps!.plant.id
-                    ? "bg-[#FF6600] text-white shadow-sm shadow-orange-200"
+                    ? "bg-[#F35b04] text-white shadow-sm shadow-orange-200"
                     : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50 hover:border-gray-300"
                 }`}
               >
@@ -619,7 +619,7 @@ export default function RKAPPage() {
                       <select
                         value={formPlant}
                         onChange={(e) => setFormPlant(e.target.value)}
-                        className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#FF6600]/20 focus:border-[#FF6600] bg-white"
+                        className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#F35b04]/20 focus:border-[#F35b04] bg-white"
                         required
                       >
                         <option value="">-- Pilih Plant --</option>
@@ -640,7 +640,7 @@ export default function RKAPPage() {
                         onChange={(e) => setFormTahun(e.target.value)}
                         min={2020}
                         max={2050}
-                        className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#FF6600]/20 focus:border-[#FF6600]"
+                        className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#F35b04]/20 focus:border-[#F35b04]"
                         required
                       />
                     </div>
@@ -651,7 +651,7 @@ export default function RKAPPage() {
                       <select
                         value={formBulan}
                         onChange={(e) => setFormBulan(e.target.value)}
-                        className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#FF6600]/20 focus:border-[#FF6600] bg-white"
+                        className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#F35b04]/20 focus:border-[#F35b04] bg-white"
                         required
                       >
                         {MONTHS.map((m) => (
@@ -676,7 +676,7 @@ export default function RKAPPage() {
                           if (e.key === "-" || e.key === "e") e.preventDefault();
                         }}
                         onWheel={(e) => (e.target as HTMLInputElement).blur()}
-                        className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#FF6600]/20 focus:border-[#FF6600]"
+                        className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#F35b04]/20 focus:border-[#F35b04]"
                         required
                       />
                     </div>
@@ -685,7 +685,7 @@ export default function RKAPPage() {
                     <button
                       type="submit"
                       disabled={saving}
-                      className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#FF6600] text-white text-sm font-medium hover:bg-orange-700 transition-all disabled:opacity-50 shadow-sm"
+                      className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#F35b04] text-white text-sm font-medium hover:bg-orange-700 transition-all disabled:opacity-50 shadow-sm"
                     >
                       <Check className="w-4 h-4" />
                       {saving ? "Menyimpan..." : "Simpan"}

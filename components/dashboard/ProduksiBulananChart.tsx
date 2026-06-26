@@ -15,7 +15,7 @@ import { fetchInputBulanan } from "@/lib/supabase-service";
 import type { ProduksiBulananRow } from "@/lib/supabase-service";
 
 const COLORS = [
-  "#FF6600",
+  "#F35b04",
   "#ef4444",
   "#10b981",
   "#f59e0b",

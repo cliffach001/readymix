@@ -112,7 +112,7 @@ export default function LaporanMingguanPage() {
             <select
               value={selectedMonth}
               onChange={(e) => setSelectedMonth(Number(e.target.value))}
-              className="px-3 py-2 rounded-xl border border-gray-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#FF6600]/20 focus:border-[#FF6600]"
+              className="px-3 py-2 rounded-xl border border-gray-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#F35b04]/20 focus:border-[#F35b04]"
             >
               {MONTHS.map((m) => (
                 <option key={m.num} value={m.num}>{m.label}</option>
@@ -121,7 +121,7 @@ export default function LaporanMingguanPage() {
             <select
               value={selectedYear}
               onChange={(e) => setSelectedYear(Number(e.target.value))}
-              className="px-3 py-2 rounded-xl border border-gray-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#FF6600]/20 focus:border-[#FF6600]"
+              className="px-3 py-2 rounded-xl border border-gray-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#F35b04]/20 focus:border-[#F35b04]"
             >
               {[CURRENT_YEAR, CURRENT_YEAR - 1, CURRENT_YEAR - 2].map((y) => (
                 <option key={y} value={y}>{y}</option>
@@ -133,7 +133,7 @@ export default function LaporanMingguanPage() {
               <select
                 value={selectedWeekStart}
                 onChange={(e) => setSelectedWeekStart(e.target.value)}
-                className="w-full appearance-none px-3 py-2 pr-8 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#FF6600]/20 focus:border-[#FF6600] cursor-pointer"
+                className="w-full appearance-none px-3 py-2 pr-8 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#F35b04]/20 focus:border-[#F35b04] cursor-pointer"
               >
                 {availableWeeks.map((w) => (
                   <option key={w.startDate} value={w.startDate}>
@@ -197,7 +197,7 @@ export default function LaporanMingguanPage() {
               return (
                 <div
                   key={wp.plantCode}
-                  className="card p-3 sm:p-4 flex flex-col items-center gap-1 border-l-4 border-l-[#FF6600]"
+                  className="card p-3 sm:p-4 flex flex-col items-center gap-1 border-l-4 border-l-[#F35b04]"
                 >
                   <span className="text-lg">{plant?.icon || "🏭"}</span>
                   <p className="text-[10px] sm:text-xs text-gray-500 font-medium text-center leading-tight">
@@ -223,7 +223,7 @@ export default function LaporanMingguanPage() {
               onClick={() => setFilterPlant(plant.id)}
               className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-medium transition-all duration-200 ${
                 filterPlant === plant.id
-                  ? "bg-[#FF6600] text-white shadow-sm shadow-orange-200"
+                  ? "bg-[#F35b04] text-white shadow-sm shadow-orange-200"
                   : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50 hover:border-gray-300"
               }`}
             >

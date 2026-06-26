@@ -5,7 +5,7 @@ import { fetchRKAPKumulatif } from "@/lib/supabase-service";
 import type { RKAPRow } from "@/lib/supabase-service";
 
 const COLORS = [
-  { bar: "bg-[#FF6600]", text: "text-[#FF6600]", bg: "bg-orange-100" },
+  { bar: "bg-[#F35b04]", text: "text-[#F35b04]", bg: "bg-orange-100" },
   { bar: "bg-red-500", text: "text-red-700", bg: "bg-red-100" },
   { bar: "bg-emerald-500", text: "text-emerald-700", bg: "bg-emerald-100" },
   { bar: "bg-amber-500", text: "text-amber-700", bg: "bg-amber-100" },

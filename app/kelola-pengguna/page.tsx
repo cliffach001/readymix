@@ -138,7 +138,7 @@ export default function KelolaPenggunaPage() {
             resetForm();
             setShowForm(true);
           }}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#FF6600] text-white text-sm font-medium hover:bg-orange-700 transition-all shadow-sm"
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#F35b04] text-white text-sm font-medium hover:bg-orange-700 transition-all shadow-sm"
         >
           <Plus className="w-4 h-4" />
           Tambah Pengguna
@@ -173,7 +173,7 @@ export default function KelolaPenggunaPage() {
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#FF6600]/20 focus:border-[#FF6600]"
+                className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#F35b04]/20 focus:border-[#F35b04]"
                 placeholder="Username"
               />
             </div>
@@ -185,7 +185,7 @@ export default function KelolaPenggunaPage() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#FF6600]/20 focus:border-[#FF6600]"
+                className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#F35b04]/20 focus:border-[#F35b04]"
                 placeholder={editingId ? "Kosongkan jika tidak diubah" : "Password"}
               />
             </div>
@@ -197,7 +197,7 @@ export default function KelolaPenggunaPage() {
                 type="text"
                 value={namaLengkap}
                 onChange={(e) => setNamaLengkap(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#FF6600]/20 focus:border-[#FF6600]"
+                className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#F35b04]/20 focus:border-[#F35b04]"
                 placeholder="Nama lengkap"
               />
             </div>
@@ -211,7 +211,7 @@ export default function KelolaPenggunaPage() {
                   setRole(e.target.value);
                   if (e.target.value !== "marketing") setUnitKerja("");
                 }}
-                className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#FF6600]/20 focus:border-[#FF6600] bg-white"
+                className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#F35b04]/20 focus:border-[#F35b04] bg-white"
               >
                 {Object.entries(ROLE_LABELS).map(([key, val]) => (
                   <option key={key} value={key}>{val.icon} {val.label}</option>
@@ -226,7 +226,7 @@ export default function KelolaPenggunaPage() {
                 <select
                   value={unitKerja}
                   onChange={(e) => setUnitKerja(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#FF6600]/20 focus:border-[#FF6600] bg-white"
+                  className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#F35b04]/20 focus:border-[#F35b04] bg-white"
                 >
                   <option value="">-- Pilih Plant --</option>
                   {PLANTS.map((p) => (
@@ -241,7 +241,7 @@ export default function KelolaPenggunaPage() {
                   type="checkbox"
                   checked={active}
                   onChange={(e) => setActive(e.target.checked)}
-                  className="w-4 h-4 rounded border-gray-300 text-[#FF6600] focus:ring-[#FF6600]/20"
+                  className="w-4 h-4 rounded border-gray-300 text-[#F35b04] focus:ring-[#F35b04]/20"
                 />
                 <span className="text-sm text-gray-700">Aktif</span>
               </label>
@@ -250,7 +250,7 @@ export default function KelolaPenggunaPage() {
               <button
                 type="submit"
                 disabled={saving}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#FF6600] text-white text-sm font-medium hover:bg-orange-700 transition-all disabled:opacity-50"
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#F35b04] text-white text-sm font-medium hover:bg-orange-700 transition-all disabled:opacity-50"
               >
                 <Check className="w-4 h-4" />
                 {saving ? "Menyimpan..." : "Simpan"}
