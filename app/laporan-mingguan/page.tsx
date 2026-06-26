@@ -156,7 +156,7 @@ export default function LaporanMingguanPage() {
         </div>
 
         {/* Info bar */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="flex flex-col gap-4">
           <div className="card p-4 flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center text-slate-600 text-lg">
               📅
