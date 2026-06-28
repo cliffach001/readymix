@@ -7,7 +7,7 @@ import LoginScreen from "@/components/LoginScreen";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import NotifikasiBell from "@/components/NotifikasiBell";
 import Link from "next/link";
-import { LayoutDashboard, ClipboardList, BarChart3, Target, Users, LogOut } from "lucide-react";
+import { LayoutDashboard, ClipboardList, BarChart3, Target, Users, User, LogOut } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { ROLE_LABELS, getPlantName, getAccessibleRoutes } from "@/lib/auth-config";
@@ -96,12 +96,16 @@ function LayoutContent({ children }: { children: ReactNode }) {
             <NotifikasiBell />
             <button
               onClick={() => setShowProfile((prev) => !prev)}
-              className="flex items-center justify-center w-9 h-9 rounded-full bg-orange-100 text-[#F35b04] hover:bg-orange-200 transition-all"
+              className="flex items-center justify-center w-9 h-9 rounded-full bg-orange-100 text-[#F35b04] hover:bg-orange-200 transition-all overflow-hidden"
               aria-label="Profil"
             >
-              <span className="text-xs font-bold">
-                {(user?.namaLengkap?.charAt(0) || user?.email?.charAt(0) || "?").toUpperCase()}
-              </span>
+              {user?.avatar_url ? (
+                <img src={user.avatar_url} alt="Profil" className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-xs font-bold">
+                  {(user?.namaLengkap?.charAt(0) || user?.email?.charAt(0) || "?").toUpperCase()}
+                </span>
+              )}
             </button>
 
             {/* ── Dropdown Profil ── */}
@@ -110,8 +114,14 @@ function LayoutContent({ children }: { children: ReactNode }) {
                 <div className="fixed inset-0 z-40" onClick={() => setShowProfile(false)} />
                 <div className="absolute right-0 top-full mt-2 z-50 w-72 bg-white rounded-2xl border border-gray-200 shadow-xl shadow-black/10 overflow-hidden">
                   <div className="p-4 flex items-center gap-3 border-b border-gray-100">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#F35b04] to-orange-500 flex items-center justify-center text-white font-bold text-sm shrink-0">
-                      {(user.namaLengkap?.charAt(0) || user.email?.charAt(0) || "?").toUpperCase()}
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#F35b04] to-orange-500 flex items-center justify-center text-white font-bold text-sm shrink-0 overflow-hidden">
+                      {user.avatar_url ? (
+                        <img src={user.avatar_url} alt="Profil" className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-xs font-bold">
+                          {(user.namaLengkap?.charAt(0) || user.email?.charAt(0) || "?").toUpperCase()}
+                        </span>
+                      )}
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-semibold text-gray-900 truncate">{user.namaLengkap}</p>
@@ -126,6 +136,14 @@ function LayoutContent({ children }: { children: ReactNode }) {
                     </div>
                   </div>
                   <div className="p-2">
+                    <Link
+                      href="/profil"
+                      onClick={() => setShowProfile(false)}
+                      className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm font-medium text-gray-700 hover:bg-orange-50 hover:text-[#F35b04] transition-all"
+                    >
+                      <User className="w-4 h-4" />
+                      Profil
+                    </Link>
                     <button
                       onClick={() => { setShowProfile(false); logout(); }}
                       className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm font-medium text-red-600 hover:bg-red-50 transition-all"

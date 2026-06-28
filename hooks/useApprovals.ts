@@ -5,29 +5,40 @@ import {
   fetchPendingApprovals,
   approveRequest as approveInDb,
   rejectRequest as rejectInDb,
+  fetchPendingPasswordApprovals,
+  approvePasswordApproval,
+  rejectPasswordApproval,
 } from "@/lib/supabase-service";
-import type { ApprovalRequestRecord } from "@/lib/supabase-service";
+import type { ApprovalRequestRecord, PasswordApprovalRecord } from "@/lib/supabase-service";
 import { useAuth } from "@/contexts/AuthContext";
 
 export function useApprovals() {
   const { user } = useAuth();
   const [pending, setPending] = useState<ApprovalRequestRecord[]>([]);
+  const [pendingPasswords, setPendingPasswords] = useState<PasswordApprovalRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const isApprover = user?.role === "admin" || user?.role === "manager";
-  const count = pending.length;
+  // Hanya admin yang bisa menyetujui password
+  const isPasswordApprover = user?.role === "admin";
+  const count = pending.length + pendingPasswords.length;
 
   const refresh = useCallback(async () => {
     if (!isApprover) {
       setPending([]);
+      setPendingPasswords([]);
       setLoading(false);
       return;
     }
     try {
-      const data = await fetchPendingApprovals();
+      const [data, pwdData] = await Promise.all([
+        fetchPendingApprovals(),
+        isPasswordApprover ? fetchPendingPasswordApprovals() : Promise.resolve([]),
+      ]);
       setPending(data);
+      setPendingPasswords(pwdData);
       setError("");
     } catch (e) {
       console.error("Gagal memuat notifikasi:", e);
@@ -35,7 +46,7 @@ export function useApprovals() {
     } finally {
       setLoading(false);
     }
-  }, [isApprover]);
+  }, [isApprover, isPasswordApprover]);
 
   // Fetch on mount & every 30s
   useEffect(() => {
@@ -47,8 +58,20 @@ export function useApprovals() {
   }, [refresh]);
 
   const approve = useCallback(
-    async (id: string) => {
+    async (id: string, type?: 'data' | 'password') => {
       if (!user?.namaLengkap) return false;
+
+      if (type === 'password') {
+        try {
+          await approvePasswordApproval(id, user.namaLengkap);
+          setPendingPasswords((prev) => prev.filter((r) => r.id !== id));
+          return true;
+        } catch (e) {
+          console.error("Gagal menyetujui password:", e);
+          return false;
+        }
+      }
+
       try {
         const updated = await approveInDb(id, user.namaLengkap);
 
@@ -56,7 +79,6 @@ export function useApprovals() {
         if (updated.status === "approved") {
           const record = updated as ApprovalRequestRecord;
           if (record.action_type === "edit" && record.new_data) {
-            // Lakukan update ke input_data
             const { updateInputData } = await import("@/lib/supabase-service");
             await updateInputData(record.record_id, record.new_data as any);
           } else if (record.action_type === "delete") {
@@ -76,8 +98,20 @@ export function useApprovals() {
   );
 
   const reject = useCallback(
-    async (id: string) => {
+    async (id: string, type?: 'data' | 'password') => {
       if (!user?.namaLengkap) return false;
+
+      if (type === 'password') {
+        try {
+          await rejectPasswordApproval(id, user.namaLengkap);
+          setPendingPasswords((prev) => prev.filter((r) => r.id !== id));
+          return true;
+        } catch (e) {
+          console.error("Gagal menolak password:", e);
+          return false;
+        }
+      }
+
       try {
         await rejectInDb(id, user.namaLengkap);
         setPending((prev) => prev.filter((r) => r.id !== id));
@@ -90,5 +124,16 @@ export function useApprovals() {
     [user?.namaLengkap]
   );
 
-  return { pending, count, loading, error, refresh, approve, reject, isApprover };
+  return {
+    pending,
+    pendingPasswords,
+    count,
+    loading,
+    error,
+    refresh,
+    approve,
+    reject,
+    isApprover,
+    isPasswordApprover,
+  };
 }

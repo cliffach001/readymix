@@ -6,6 +6,7 @@ import {
   fetchPlants,
   fetchInputData,
   fetchPlantMonthlyAggregation,
+  fetchRKAPTargetByPlant,
   createInputData,
   updateInputData,
   deleteInputData,
@@ -31,6 +32,7 @@ export default function PlantDetailPage() {
   const [plant, setPlant] = useState<PlantRow | null>(null);
   const [inputData, setInputData] = useState<InputDataRecord[]>([]);
   const [monthlyData, setMonthlyData] = useState<AggregatedRow[]>([]);
+  const [rkapTarget, setRkapTarget] = useState(0);
   const [editingInputId, setEditingInputId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -61,8 +63,9 @@ export default function PlantDetailPage() {
       fetchPlants(),
       fetchInputData(plantCode),
       fetchPlantMonthlyAggregation(plantCode),
+      fetchRKAPTargetByPlant(plantCode),
     ])
-      .then(([plants, input, monthly]) => {
+      .then(([plants, input, monthly, rkap]) => {
         const found = plants.find((p) => p.id === plantCode);
         if (!found) {
           setError("Plant tidak ditemukan");
@@ -76,6 +79,7 @@ export default function PlantDetailPage() {
         setPlant(found);
         setInputData(input);
         setMonthlyData(monthly);
+        setRkapTarget(rkap);
       })
       .catch((err) => {
         console.error(err);
@@ -351,11 +355,19 @@ export default function PlantDetailPage() {
               <Calendar className="w-5 h-5 text-blue-600" />
             </div>
             <div className="min-w-0">
-              <p className="text-[10px] sm:text-xs text-gray-500 font-medium">Produksi Bulanan{plant ? ` ${plant.nama.replace("Ready Mix ", "")}` : ""}</p>
-              <p className="text-sm sm:text-xl font-bold text-gray-900 truncate">
-                {totalVolumeMonthly.toLocaleString("id-ID")} m³
+              <p className="text-[10px] sm:text-xs text-gray-500 font-medium">
+                Capaian s/d {monthlyData.length > 0
+                  ? `${monthlyData[monthlyData.length - 1].bulan} ${monthlyData[monthlyData.length - 1].tahun}`
+                  : new Date().toLocaleDateString("id-ID", { month: "short", year: "numeric" })}
               </p>
-              <p className="text-[10px] text-gray-400">{monthlyData.length} bulan</p>
+              <p className="text-sm sm:text-xl font-bold text-gray-900 truncate">
+                {rkapTarget > 0
+                  ? `${Math.min(100, Math.round((totalVolumeMonthly / rkapTarget) * 100))}%`
+                  : `${totalVolumeMonthly.toLocaleString("id-ID")} m³`}
+              </p>
+              <p className="text-[10px] text-gray-400">
+                {rkapTarget > 0 ? `RKAP ${rkapTarget.toLocaleString("id-ID")} m³` : "RKAP belum diinput"}
+              </p>
             </div>
           </div>
         </div>

@@ -177,6 +177,23 @@ export async function updateRKAPRecord(
   return data as unknown as RKAPRecord;
 }
 
+/** Ambil total target RKAP untuk satu plant (semua bulan di tahun berjalan) */
+export async function fetchRKAPTargetByPlant(
+  plantCode: string,
+  tahun?: number
+): Promise<number> {
+  const year = tahun ?? new Date().getFullYear();
+  const { data, error } = await getSupabase()
+    .from("rkap")
+    .select("target")
+    .eq("plant_code", plantCode)
+    .eq("tahun", year)
+    .returns<{ target: number }[]>();
+
+  if (error) throw error;
+  return (data ?? []).reduce((sum, r) => sum + Number(r.target), 0);
+}
+
 /** Untuk dashboard: hitung target tahunan (sum of monthly) & realisasi per plant */
 export async function fetchRKAP(): Promise<RKAPRow[]> {
   const { data: plants, error: plantErr } = await getSupabase()
@@ -417,8 +434,27 @@ export interface UserRecord {
   nama_lengkap: string;
   role: string;
   unit_kerja: string | null;
+  no_handphone: string;
+  no_pegawai: string;
+  avatar_url: string;
+  email: string;
+  alamat: string;
   active: boolean;
   created_at: string;
+}
+
+export async function fetchUserByUsername(
+  username: string
+): Promise<UserRecord | null> {
+  const { data, error } = await getSupabase()
+    .from("users")
+    .select("*")
+    .eq("username", username)
+    .limit(1)
+    .returns<UserRecord[]>();
+
+  if (error) throw error;
+  return data?.[0] ?? null;
 }
 
 export async function fetchUsers(): Promise<UserRecord[]> {
@@ -460,6 +496,103 @@ export async function updateUser(
   return data as UserRecord;
 }
 
+// ============================================================
+// Avatar Upload — kompres & upload ke Supabase Storage
+// ============================================================
+
+/**
+ * Kompres gambar ke resolusi kecil (max 300px) tanpa mengorbankan
+ * ketajaman, lalu upload ke Supabase Storage bucket "avatars".
+ * Fallback ke base64 jika bucket tidak tersedia.
+ */
+export async function uploadAvatar(
+  userId: string,
+  file: File
+): Promise<string> {
+  // 1. Kompres gambar via Canvas
+  const compressed = await compressImage(file, 300);
+
+  // 2. Coba upload ke Supabase Storage
+  try {
+    const supabase = getSupabase();
+    const ext = "jpg";
+    const path = `avatar-${userId}-${Date.now()}.${ext}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("avatars")
+      .upload(path, compressed, {
+        contentType: "image/jpeg",
+        upsert: true,
+      });
+
+    if (!uploadError) {
+      const { data: publicUrl } = supabase.storage
+        .from("avatars")
+        .getPublicUrl(path);
+      return publicUrl.publicUrl;
+    }
+
+    // Jika bucket belum ada, fallback ke base64
+    console.warn("Supabase Storage gagal, fallback ke base64:", uploadError.message);
+  } catch (e) {
+    console.warn("Supabase Storage tidak tersedia, fallback ke base64:", e);
+  }
+
+  // 3. Fallback: simpan sebagai base64 data URL
+  return blobToBase64(compressed);
+}
+
+/**
+ * Kompres gambar ke resolusi maksimal `maxDimension` px
+ * dengan kualitas tinggi (JPEG 0.88).
+ */
+function compressImage(file: File, maxDimension: number): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(img.src);
+
+      let { width, height } = img;
+      if (width > maxDimension || height > maxDimension) {
+        const ratio = Math.min(maxDimension / width, maxDimension / height);
+        width = Math.round(width * ratio);
+        height = Math.round(height * ratio);
+      }
+
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d")!;
+      ctx.imageSmoothingQuality = "high";
+      ctx.drawImage(img, 0, 0, width, height);
+
+      canvas.toBlob(
+        (blob) => {
+          if (blob) resolve(blob);
+          else reject(new Error("Gagal mengkompres gambar"));
+        },
+        "image/jpeg",
+        0.88
+      );
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(img.src);
+      reject(new Error("Gagal membaca gambar"));
+    };
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+/** Ubah Blob ke base64 data URL */
+function blobToBase64(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
 export async function deleteUser(id: string): Promise<void> {
   const { error } = await (getSupabase()
     .from("users") as any)
@@ -474,7 +607,7 @@ export async function deleteUser(id: string): Promise<void> {
 // ============================================================
 
 export type AuthResult =
-  | { ok: true; data: { username: string; role: string; nama_lengkap: string; unit_kerja: string | null } }
+  | { ok: true; data: { username: string; role: string; nama_lengkap: string; unit_kerja: string | null; avatar_url: string } }
   | { ok: false; reason: "not_found" | "db_error"; message: string };
 
 export async function authenticateUser(
@@ -484,12 +617,12 @@ export async function authenticateUser(
   try {
     const { data, error } = await getSupabase()
       .from("users")
-      .select("username, role, nama_lengkap, unit_kerja")
+      .select("username, role, nama_lengkap, unit_kerja, avatar_url")
       .eq("username", username)
       .eq("password", password)
       .eq("active", true)
       .limit(1)
-      .returns<{ username: string; role: string; nama_lengkap: string; unit_kerja: string | null }[]>()
+      .returns<{ username: string; role: string; nama_lengkap: string; unit_kerja: string | null; avatar_url: string }[]>()
       .single();
 
     if (error) {
@@ -1245,4 +1378,102 @@ export async function rejectRequest(
 
   if (error) throw error;
   return data as ApprovalRequestRecord;
+}
+
+// ============================================================
+// Password Approval Requests (Manager/Marketing → Admin)
+// ============================================================
+
+export interface PasswordApprovalRecord {
+  id: string;
+  user_id: string;
+  username: string;
+  nama_lengkap: string;
+  old_password: string;
+  new_password: string;
+  status: 'pending' | 'approved' | 'rejected';
+  requested_at: string;
+  reviewed_by?: string;
+  reviewed_at?: string;
+}
+
+export async function createPasswordApproval(
+  record: Omit<PasswordApprovalRecord, "id" | "requested_at">
+): Promise<PasswordApprovalRecord> {
+  const { data, error } = await (getSupabase()
+    .from("password_approvals") as any)
+    .insert(record)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data as PasswordApprovalRecord;
+}
+
+export async function fetchPendingPasswordApprovals(): Promise<PasswordApprovalRecord[]> {
+  const { data, error } = await getSupabase()
+    .from("password_approvals")
+    .select("*")
+    .eq("status", "pending")
+    .order("requested_at", { ascending: false })
+    .returns<PasswordApprovalRecord[]>();
+
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function approvePasswordApproval(
+  id: string,
+  reviewerName: string
+): Promise<PasswordApprovalRecord> {
+  // 1. Ambil data approval
+  const { data: approval, error: fetchError } = await (getSupabase()
+    .from("password_approvals") as any)
+    .select("*")
+    .eq("id", id)
+    .single();
+
+  if (fetchError) throw fetchError;
+
+  // 2. Update password user
+  const { error: updateError } = await (getSupabase()
+    .from("users") as any)
+    .update({ password: approval.new_password })
+    .eq("id", approval.user_id);
+
+  if (updateError) throw updateError;
+
+  // 3. Update status approval
+  const { data, error } = await (getSupabase()
+    .from("password_approvals") as any)
+    .update({
+      status: "approved",
+      reviewed_by: reviewerName,
+      reviewed_at: new Date().toISOString(),
+    })
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data as PasswordApprovalRecord;
+}
+
+export async function rejectPasswordApproval(
+  id: string,
+  reviewerName: string
+): Promise<PasswordApprovalRecord> {
+  const { data, error } = await (getSupabase()
+    .from("password_approvals") as any)
+    .update({
+      status: "rejected",
+      reviewed_by: reviewerName,
+      reviewed_at: new Date().toISOString(),
+    })
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data as PasswordApprovalRecord;
 }

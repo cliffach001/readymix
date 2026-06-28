@@ -9,8 +9,9 @@ import {
 } from "@/lib/supabase-service";
 import type { UserRecord } from "@/lib/supabase-service";
 import { ROLE_LABELS, PLANTS, getPlantName } from "@/lib/auth-config";
+import { validatePassword } from "@/lib/utils";
 import type { Role } from "@/lib/auth-types";
-import { Plus, Pencil, Trash2, X, Check } from "lucide-react";
+import { Plus, Pencil, Trash2, X, Check, Eye, EyeOff } from "lucide-react";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { useBackgroundRefresh } from "@/lib/use-background-refresh";
 
@@ -28,6 +29,16 @@ export default function KelolaPenggunaPage() {
   const [unitKerja, setUnitKerja] = useState<string>("");
   const [active, setActive] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+
+  // ── Password criteria checklist ──
+  const pwdCriteria = [
+    { key: "min", label: "Minimal 8 karakter", test: (v: string) => v.length >= 8 },
+    { key: "upper", label: "Huruf besar (A-Z)", test: (v: string) => /[A-Z]/.test(v) },
+    { key: "lower", label: "Huruf kecil (a-z)", test: (v: string) => /[a-z]/.test(v) },
+    { key: "number", label: "Angka (0-9)", test: (v: string) => /[0-9]/.test(v) },
+  ];
+  const isPasswordValid = pwdCriteria.every((c) => c.test(password));
 
   const { data: usersData, loading, refresh } = useBackgroundRefresh<UserRecord[]>(
     fetchUsers,
@@ -45,6 +56,7 @@ export default function KelolaPenggunaPage() {
     setActive(true);
     setEditingId(null);
     setShowForm(false);
+    setShowPassword(false);
   };
 
   const openEdit = (user: UserRecord) => {
@@ -61,7 +73,15 @@ export default function KelolaPenggunaPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!username.trim()) return alert("Username harus diisi");
-    if (!editingId && !password.trim()) return alert("Password harus diisi");
+
+    // Validasi password: wajib saat tambah baru, opsional saat edit
+    if (!editingId) {
+      const pwdErr = validatePassword(password);
+      if (pwdErr) return alert(pwdErr);
+    } else if (password.trim()) {
+      const pwdErr = validatePassword(password);
+      if (pwdErr) return alert(pwdErr);
+    }
 
     setSaving(true);
     try {
@@ -82,6 +102,11 @@ export default function KelolaPenggunaPage() {
           nama_lengkap: namaLengkap,
           role,
           unit_kerja: role === "marketing" ? unitKerja || null : null,
+          no_handphone: "",
+          no_pegawai: "",
+          avatar_url: "",
+          email: "",
+          alamat: "",
           active,
         });
       }
@@ -172,17 +197,88 @@ export default function KelolaPenggunaPage() {
                 placeholder="Username"
               />
             </div>
-            <div>
+            <div className="relative">
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Password {!editingId && <span className="text-red-500">*</span>}
               </label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#F35b04]/20 focus:border-[#F35b04]"
-                placeholder={editingId ? "Kosongkan jika tidak diubah" : "Password"}
-              />
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full px-3 py-2 pr-10 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#F35b04]/20 focus:border-[#F35b04]"
+                  placeholder={editingId ? "Kosongkan jika tidak diubah" : "Password"}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-all"
+                  tabIndex={-1}
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+
+              {/* Password criteria checklist */}
+              {password && !editingId && (
+                <div className="mt-2 p-3 bg-gradient-to-br from-gray-50 to-orange-50/40 rounded-xl border border-gray-100 space-y-1.5">
+                  {pwdCriteria.map((c) => {
+                    const passed = c.test(password);
+                    return (
+                      <div key={c.key} className="flex items-center gap-2">
+                        <div
+                          className={`w-4 h-4 rounded-full flex items-center justify-center transition-all duration-200 shrink-0 ${
+                            passed ? "bg-green-500 shadow-sm shadow-green-200" : "bg-gray-200"
+                          }`}
+                        >
+                          {passed ? (
+                            <svg className="w-2.5 h-2.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                              <polyline points="20 6 9 17 4 12" />
+                            </svg>
+                          ) : (
+                            <span className="w-1.5 h-1.5 rounded-full bg-gray-400" />
+                          )}
+                        </div>
+                        <span className={`text-[11px] font-medium transition-all duration-200 ${passed ? "text-green-700" : "text-gray-400"}`}>
+                          {c.label}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Strength bar */}
+              {password && !editingId && (
+                <div className="mt-2 space-y-1">
+                  <div className="flex gap-1">
+                    {[1, 2, 3, 4].map((level) => {
+                      const filled =
+                        (password.length >= 4 && level <= 1) ||
+                        (password.length >= 6 && level <= 2) ||
+                        (isPasswordValid && level <= 3) ||
+                        (isPasswordValid && password.length >= 10 && level <= 4);
+                      return (
+                        <div
+                          key={level}
+                          className={`h-1 flex-1 rounded-full transition-all duration-300 ${
+                            filled
+                              ? password.length >= 10 && isPasswordValid
+                                ? "bg-green-500"
+                                : isPasswordValid
+                                ? "bg-emerald-400"
+                                : "bg-amber-400"
+                              : "bg-gray-200"
+                          }`}
+                        />
+                      );
+                    })}
+                  </div>
+                  <p className="text-[10px] text-gray-400 text-right">
+                    {password.length < 8 ? "Lemah" : isPasswordValid && password.length >= 10 ? "Kuat" : isPasswordValid ? "Sedang" : "Kurang"}
+                  </p>
+                </div>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">

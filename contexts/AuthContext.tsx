@@ -23,8 +23,10 @@ interface AuthContextValue {
   user: AuthUser | null;
   isAuthenticated: boolean;
   ready: boolean;
-  login: (email: string, role: Role, namaLengkap: string, unitKerja?: string) => void;
+  login: (email: string, role: Role, namaLengkap: string, unitKerja?: string, avatar_url?: string) => void;
   logout: () => void;
+  /** Update field tertentu di user state + localStorage (misal avatar_url) */
+  updateUserField: (fields: Partial<AuthUser>) => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -36,7 +38,7 @@ function getInitialUser(): AuthUser | null {
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     if (parsed && typeof parsed.role === "string") {
-      return { role: parsed.role as Role, email: parsed.email ?? "", namaLengkap: parsed.namaLengkap ?? parsed.email ?? "", unitKerja: parsed.unitKerja };
+      return { role: parsed.role as Role, email: parsed.email ?? "", namaLengkap: parsed.namaLengkap ?? parsed.email ?? "", unitKerja: parsed.unitKerja, avatar_url: parsed.avatar_url ?? undefined };
     }
     return null;
   } catch {
@@ -54,8 +56,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setReady(true);
   }, []);
 
-  const login = useCallback((email: string, role: Role, namaLengkap: string, unitKerja?: string) => {
-    const authUser: AuthUser = { role, email, namaLengkap, unitKerja };
+  const login = useCallback((email: string, role: Role, namaLengkap: string, unitKerja?: string, avatar_url?: string) => {
+    const authUser: AuthUser = { role, email, namaLengkap, unitKerja, avatar_url };
     try {
       localStorage.setItem(STORAGE_KEY_AUTH, JSON.stringify(authUser));
     } catch {
@@ -71,6 +73,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // abaikan
     }
     setUser(null);
+  }, []);
+
+  const updateUserField = useCallback((fields: Partial<AuthUser>) => {
+    setUser((prev) => {
+      if (!prev) return prev;
+      const updated = { ...prev, ...fields };
+      try {
+        localStorage.setItem(STORAGE_KEY_AUTH, JSON.stringify(updated));
+      } catch {
+        // abaikan
+      }
+      return updated;
+    });
   }, []);
 
   // ── Inactivity auto-logout ──
@@ -104,7 +119,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, isAuthenticated: user !== null, ready, login, logout }}
+      value={{ user, isAuthenticated: user !== null, ready, login, logout, updateUserField }}
     >
       {children}
     </AuthContext.Provider>

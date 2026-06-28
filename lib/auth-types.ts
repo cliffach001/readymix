@@ -11,4 +11,5 @@ export interface AuthUser {
   email: string;
   namaLengkap: string;
   unitKerja?: string; // plant_code — khusus untuk role marketing
+  avatar_url?: string;
 }
