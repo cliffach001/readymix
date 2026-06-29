@@ -3,6 +3,7 @@
 import type { FormInputData } from "@/hooks/useInputData";
 import { InfoPlant } from "@/lib/data";
 import { Save, RotateCcw, Edit3 } from "lucide-react";
+import InputHistori from "@/components/InputHistori";
 
 interface FormInputDataProps {
   plant: InfoPlant;
@@ -18,6 +19,12 @@ interface FormInputDataProps {
   updateForm: (field: keyof FormInputData, value: string) => void;
   resetForm: () => void;
   submitData: () => Promise<boolean>;
+  fieldHistories: {
+    namaPelanggan: string[];
+    uraianPekerjaan: string[];
+    type: string[];
+    keterangan: string[];
+  };
 }
 
 export default function FormInputDataComponent({
@@ -28,6 +35,7 @@ export default function FormInputDataComponent({
   updateForm,
   resetForm,
   submitData,
+  fieldHistories,
 }: FormInputDataProps) {
   const formatCurrency = (val: number) =>
     val.toLocaleString("id-ID");
@@ -77,58 +85,46 @@ export default function FormInputDataComponent({
             </div>
 
             {/* Nama Pelanggan */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Nama Pelanggan <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                value={form.namaPelanggan}
-                onChange={(e) => updateForm("namaPelanggan", e.target.value)}
-                placeholder="Cth: PT. ABC Mandiri"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition"
-                required
-              />
-            </div>
+            <InputHistori
+              value={form.namaPelanggan}
+              onChange={(v) => updateForm("namaPelanggan", v)}
+              suggestions={fieldHistories.namaPelanggan}
+              label="Nama Pelanggan"
+              placeholder="Cth: PT. ABC Mandiri"
+              required
+            />
 
             {/* Type */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Type
-              </label>
-              <select
-                value={form.type}
-                onChange={(e) => updateForm("type", e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition bg-white"
-              >
-                <option value="">-- Pilih Type --</option>
-                <option value="Ready Mix K225">Ready Mix K225</option>
-                <option value="Ready Mix K250">Ready Mix K250</option>
-                <option value="Ready Mix K300">Ready Mix K300</option>
-                <option value="Ready Mix K350">Ready Mix K350</option>
-                <option value="Ready Mix K400">Ready Mix K400</option>
-                <option value="Ready Mix K450">Ready Mix K450</option>
-                <option value="Ready Mix K500">Ready Mix K500</option>
-                <option value="Beton Mass">Beton Mass</option>
-                <option value="Lainnya">Lainnya</option>
-              </select>
-            </div>
+            <InputHistori
+              value={form.type}
+              onChange={(v) => updateForm("type", v)}
+              suggestions={[
+                "Ready Mix K225",
+                "Ready Mix K250",
+                "Ready Mix K300",
+                "Ready Mix K350",
+                "Ready Mix K400",
+                "Ready Mix K450",
+                "Ready Mix K500",
+                "Beton Mass",
+                "Lainnya",
+                ...fieldHistories.type,
+              ]}
+              label="Type"
+              placeholder="K225, K300, dll"
+            />
           </div>
 
           {/* Row 2: Uraian Pekerjaan */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Uraian Pekerjaan <span className="text-red-500">*</span>
-            </label>
-            <textarea
-              value={form.uraianPekerjaan}
-              onChange={(e) => updateForm("uraianPekerjaan", e.target.value)}
-              placeholder="Cth: Pengecoran Jalan Taman Sari"
-              rows={2}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition resize-none"
-              required
-            />
-          </div>
+          <InputHistori
+            value={form.uraianPekerjaan}
+            onChange={(v) => updateForm("uraianPekerjaan", v)}
+            suggestions={fieldHistories.uraianPekerjaan}
+            label="Uraian Pekerjaan"
+            placeholder="Cth: Pengecoran Jalan Taman Sari"
+            multiline
+            required
+          />
 
           {/* Row 3: Volume + Harga Satuan + Sewa CP */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -160,7 +156,7 @@ export default function FormInputDataComponent({
                 onChange={(e) => updateForm("hargaSatuan", e.target.value)}
                 placeholder="0"
                 min="0"
-                step="100"
+                step="1"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition"
                 required
               />
@@ -218,18 +214,14 @@ export default function FormInputDataComponent({
           </div>
 
           {/* Keterangan */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Keterangan
-            </label>
-            <textarea
-              value={form.keterangan}
-              onChange={(e) => updateForm("keterangan", e.target.value)}
-              placeholder="Cth: Pembayaran termin 1, Catatan khusus, dll"
-              rows={2}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition resize-none"
-            />
-          </div>
+          <InputHistori
+            value={form.keterangan}
+            onChange={(v) => updateForm("keterangan", v)}
+            suggestions={fieldHistories.keterangan}
+            label="Keterangan"
+            placeholder="Cth: Pembayaran termin 1, Catatan khusus, dll"
+            multiline
+          />
 
           {/* Action Buttons */}
           <div className="flex items-center gap-3 pt-2">

@@ -12,8 +12,14 @@ import {
 import type { Role, AuthUser } from "@/lib/auth-types";
 import { STORAGE_KEY_AUTH } from "@/lib/auth-config";
 
-const INACTIVITY_TIMEOUT = 10 * 60 * 1000; // 10 menit
 const CHECK_INTERVAL = 30 * 1000; // cek setiap 30 detik
+
+function getTimeoutByRole(role: string | undefined): number {
+  // Admin: 30 menit, Manager/Marketing: 20 menit, lainnya: 10 menit
+  if (role === "admin") return 30 * 60 * 1000;
+  if (role === "manager" || role === "marketing") return 20 * 60 * 1000;
+  return 10 * 60 * 1000;
+}
 
 // ============================================================
 // Auth Context — Login/logout with localStorage persistence
@@ -106,7 +112,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Periodic check every 30 detik
     const intervalId = setInterval(() => {
       const elapsed = Date.now() - lastActivityRef.current;
-      if (elapsed >= INACTIVITY_TIMEOUT) {
+      const timeout = getTimeoutByRole(user?.role);
+      if (elapsed >= timeout) {
         logout();
       }
     }, CHECK_INTERVAL);

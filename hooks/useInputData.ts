@@ -74,6 +74,14 @@ export function useInputData(plantId: string) {
         new Date(b.tanggal).getTime() - new Date(a.tanggal).getTime()
     );
 
+  // Distinct field values for input history (from all plants)
+  const fieldHistories = {
+    namaPelanggan: Array.from(new Set(allData.map((d) => d.namaPelanggan).filter(Boolean))),
+    uraianPekerjaan: Array.from(new Set(allData.map((d) => d.uraianPekerjaan).filter(Boolean))),
+    type: Array.from(new Set(allData.map((d) => d.type).filter(Boolean))),
+    keterangan: Array.from(new Set(allData.map((d) => d.keterangan).filter(Boolean))),
+  };
+
   // Computed values
   const volume = parseFloat(form.volume) || 0;
   const hargaSatuan = parseFloat(form.hargaSatuan) || 0;
@@ -204,6 +212,7 @@ export function useInputData(plantId: string) {
     editingId,
     loading,
     computed: { volume, hargaSatuan, jumlahHarga, sewaCP, totalHarga },
+    fieldHistories,
     updateForm,
     resetForm,
     submitData,

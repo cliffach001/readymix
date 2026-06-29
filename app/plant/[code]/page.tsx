@@ -16,6 +16,7 @@ import type { PlantRow, InputDataRecord, AggregatedRow } from "@/lib/supabase-se
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { useAuth } from "@/contexts/AuthContext";
 import { ArrowLeft, Calendar, Package, DollarSign, Plus, X, Save, RotateCcw, Pencil, Trash2 } from "lucide-react";
+import InputHistori from "@/components/InputHistori";
 
 function formatCurrency(val: number) {
   return val.toLocaleString("id-ID");
@@ -39,6 +40,14 @@ export default function PlantDetailPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 20;
+
+  // Distinct field values for input history
+  const fieldHistories = {
+    namaPelanggan: Array.from(new Set(inputData.map((d) => d.nama_pelanggan).filter(Boolean))),
+    uraianPekerjaan: Array.from(new Set(inputData.map((d) => d.uraian_pekerjaan).filter(Boolean))),
+    type: Array.from(new Set(inputData.map((d) => d.type).filter(Boolean))),
+    keterangan: Array.from(new Set(inputData.map((d) => d.keterangan ?? '').filter(Boolean))),
+  };
 
   // ── Modal Input Data ──
   const [showModal, setShowModal] = useState(false);
@@ -691,30 +700,36 @@ export default function PlantDetailPage() {
                     <input type="date" value={form.tanggal} onChange={(e) => updateForm("tanggal", e.target.value)}
                       className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#F35b04]/20 focus:border-[#F35b04]" required />
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Nama Pelanggan <span className="text-red-500">*</span></label>
-                    <input type="text" value={form.namaPelanggan} onChange={(e) => updateForm("namaPelanggan", e.target.value)}
-                      placeholder="Cth: PT. ABC Mandiri"
-                      className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#F35b04]/20 focus:border-[#F35b04]" required />
-                  </div>
+                  <InputHistori
+                    value={form.namaPelanggan}
+                    onChange={(v) => updateForm("namaPelanggan", v)}
+                    suggestions={fieldHistories.namaPelanggan}
+                    label="Nama Pelanggan"
+                    placeholder="Cth: PT. ABC Mandiri"
+                    required
+                  />
                 </div>
 
                 {/* Uraian Pekerjaan */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Uraian Pekerjaan <span className="text-red-500">*</span></label>
-                  <textarea value={form.uraianPekerjaan} onChange={(e) => updateForm("uraianPekerjaan", e.target.value)}
-                    placeholder="Cth: Pengecoran Jalan Taman Sari" rows={2}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#F35b04]/20 focus:border-[#F35b04] resize-none" required />
-                </div>
+                <InputHistori
+                  value={form.uraianPekerjaan}
+                  onChange={(v) => updateForm("uraianPekerjaan", v)}
+                  suggestions={fieldHistories.uraianPekerjaan}
+                  label="Uraian Pekerjaan"
+                  placeholder="Cth: Pengecoran Jalan Taman Sari"
+                  multiline
+                  required
+                />
 
                 {/* Type + Volume + Harga Satuan */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
-                    <input type="text" value={form.type} onChange={(e) => updateForm("type", e.target.value)}
-                      placeholder="Cth: K300, FC-25, dll"
-                      className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#F35b04]/20 focus:border-[#F35b04]" />
-                  </div>
+                  <InputHistori
+                    value={form.type}
+                    onChange={(v) => updateForm("type", v)}
+                    suggestions={fieldHistories.type}
+                    label="Type"
+                    placeholder="Cth: K300, FC-25, dll"
+                  />
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Volume (m³) <span className="text-red-500">*</span></label>
                     <input type="number" value={form.volume} onChange={(e) => updateForm("volume", e.target.value)}
@@ -724,7 +739,7 @@ export default function PlantDetailPage() {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Harga Satuan (Rp) <span className="text-red-500">*</span></label>
                     <input type="number" value={form.hargaSatuan} onChange={(e) => updateForm("hargaSatuan", e.target.value)}
-                      placeholder="0" min="0" step="100"
+                      placeholder="0" min="0" step="1"
                       className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#F35b04]/20 focus:border-[#F35b04]" required />
                   </div>
                 </div>
@@ -761,12 +776,14 @@ export default function PlantDetailPage() {
                 )}
 
                 {/* Keterangan */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Keterangan</label>
-                  <textarea value={form.keterangan} onChange={(e) => updateForm("keterangan", e.target.value)}
-                    placeholder="Cth: Pembayaran termin 1, Catatan khusus, dll" rows={2}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#F35b04]/20 focus:border-[#F35b04] resize-none" />
-                </div>
+                <InputHistori
+                  value={form.keterangan}
+                  onChange={(v) => updateForm("keterangan", v)}
+                  suggestions={fieldHistories.keterangan}
+                  label="Keterangan"
+                  placeholder="Cth: Pembayaran termin 1, Catatan khusus, dll"
+                  multiline
+                />
 
                 {/* Actions */}
                 <div className="flex items-center gap-3 pt-2">
