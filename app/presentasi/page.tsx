@@ -2,14 +2,16 @@
 
 import { useState, useEffect } from "react";
 import {
-  BarChart,
+  ComposedChart,
   Bar,
+  Line,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
   Legend,
   ResponsiveContainer,
+  LabelList,
 } from "recharts";
 import {
   fetchRKAPRecords,
@@ -132,7 +134,7 @@ export default function PresentasiPage() {
     const rkap = getRKAP(code, selectedMonth);
     const real = getRealisasi(code, selectedMonth);
     const variance = real - rkap;
-    const capaian = rkap > 0 ? Math.round((real / rkap) * 100 * 10) / 10 : 0;
+    const capaian = rkap > 0 ? Math.round((real / rkap) * 100 * 10) / 10 : (real > 0 ? 100 : 0);
     const plant = plants.find((p) => p.id === code);
     return { plantCode: code, plantName: plant?.nama.replace("Ready Mix ", "") ?? code, plantIcon: plant?.icon ?? "🏭", rkap, real, variance, capaian };
   });
@@ -145,7 +147,7 @@ export default function PresentasiPage() {
       real += getRealisasi(code, m);
     }
     const variance = real - rkap;
-    const capaian = rkap > 0 ? Math.round((real / rkap) * 100 * 10) / 10 : 0;
+    const capaian = rkap > 0 ? Math.round((real / rkap) * 100 * 10) / 10 : (real > 0 ? 100 : 0);
     const plant = plants.find((p) => p.id === code);
     return { plantCode: code, plantName: plant?.nama.replace("Ready Mix ", "") ?? code, plantIcon: plant?.icon ?? "🏭", rkap, real, variance, capaian };
   });
@@ -159,10 +161,11 @@ export default function PresentasiPage() {
     name: d.plantName,
     RKAP: d.rkap,
     Realisasi: d.real,
+    capaian: d.capaian,
   }));
 
   // Chart total YTD
-  const chartYTD = [{ name: "Total", RKAP: totalYTD.rkap, Realisasi: totalYTD.real }];
+  const chartYTD = [{ name: "Total", RKAP: totalYTD.rkap, Realisasi: totalYTD.real, capaian: totalYTD.rkap > 0 ? Math.round((totalYTD.real / totalYTD.rkap) * 100 * 10) / 10 : (totalYTD.real > 0 ? 100 : 0) }];
 
   const monthLabel = MONTHS.find((m) => m.num === selectedMonth)?.label ?? "";
 
@@ -464,15 +467,19 @@ export default function PresentasiPage() {
             </div>
             <div className="card-body h-[350px]">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartPerPlant} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+                <ComposedChart data={chartPerPlant} margin={{ top: 20, right: 20, left: 0, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                   <XAxis dataKey="name" tick={{ fontSize: 10, fill: "#64748b" }} tickLine={false} axisLine={{ stroke: "#e2e8f0" }} />
-                  <YAxis tick={{ fontSize: 10, fill: "#64748b" }} tickLine={false} axisLine={{ stroke: "#e2e8f0" }} label={{ value: "m³", angle: -90, position: "insideLeft", style: { fontSize: 10, fill: "#94a3b8" } }} />
+                  <YAxis yAxisId="left" tick={{ fontSize: 10, fill: "#64748b" }} tickLine={false} axisLine={{ stroke: "#e2e8f0" }} label={{ value: "M3", angle: -90, position: "insideLeft", style: { fontSize: 10, fill: "#94a3b8" } }} />
+                  <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 10, fill: "#3b82f6" }} tickLine={false} axisLine={{ stroke: "#e2e8f0" }} domain={[0, 100]} tickFormatter={(v) => `${v}%`} />
                   <Tooltip contentStyle={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: "8px", fontSize: 12 }} />
                   <Legend wrapperStyle={{ fontSize: 11 }} />
-                  <Bar dataKey="RKAP" fill="#F35b04" radius={[4, 4, 0, 0]} maxBarSize={24} />
-                  <Bar dataKey="Realisasi" fill="#10b981" radius={[4, 4, 0, 0]} maxBarSize={24} />
-                </BarChart>
+                  <Bar yAxisId="left" dataKey="RKAP" fill="#F35b04" radius={[4, 4, 0, 0]} maxBarSize={24} />
+                  <Bar yAxisId="left" dataKey="Realisasi" fill="#10b981" radius={[4, 4, 0, 0]} maxBarSize={24} />
+                  <Line yAxisId="right" dataKey="capaian" stroke="#3b82f6" strokeWidth={2} dot={{ r: 4, fill: "#fff", stroke: "#3b82f6", strokeWidth: 2 }} name="Capaian (%)">
+                    <LabelList dataKey="capaian" position="top" fontSize={10} fill="#3b82f6" formatter={(v: number) => `${v}%`} />
+                  </Line>
+                </ComposedChart>
               </ResponsiveContainer>
             </div>
           </div>
@@ -485,15 +492,19 @@ export default function PresentasiPage() {
             </div>
             <div className="card-body h-[350px] flex items-center justify-center">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartYTD} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+                <ComposedChart data={chartYTD} margin={{ top: 20, right: 20, left: 0, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                   <XAxis dataKey="name" tick={{ fontSize: 10, fill: "#64748b" }} tickLine={false} axisLine={{ stroke: "#e2e8f0" }} />
-                  <YAxis tick={{ fontSize: 10, fill: "#64748b" }} tickLine={false} axisLine={{ stroke: "#e2e8f0" }} label={{ value: "m³", angle: -90, position: "insideLeft", style: { fontSize: 10, fill: "#94a3b8" } }} />
+                  <YAxis yAxisId="left" tick={{ fontSize: 10, fill: "#64748b" }} tickLine={false} axisLine={{ stroke: "#e2e8f0" }} label={{ value: "M3", angle: -90, position: "insideLeft", style: { fontSize: 10, fill: "#94a3b8" } }} />
+                  <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 10, fill: "#3b82f6" }} tickLine={false} axisLine={{ stroke: "#e2e8f0" }} domain={[0, 100]} tickFormatter={(v) => `${v}%`} />
                   <Tooltip contentStyle={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: "8px", fontSize: 12 }} />
                   <Legend wrapperStyle={{ fontSize: 11 }} />
-                  <Bar dataKey="RKAP" fill="#F35b04" radius={[4, 4, 0, 0]} maxBarSize={40} />
-                  <Bar dataKey="Realisasi" fill="#10b981" radius={[4, 4, 0, 0]} maxBarSize={40} />
-                </BarChart>
+                  <Bar yAxisId="left" dataKey="RKAP" fill="#F35b04" radius={[4, 4, 0, 0]} maxBarSize={40} />
+                  <Bar yAxisId="left" dataKey="Realisasi" fill="#10b981" radius={[4, 4, 0, 0]} maxBarSize={40} />
+                  <Line yAxisId="right" dataKey="capaian" stroke="#3b82f6" strokeWidth={2} dot={{ r: 4, fill: "#fff", stroke: "#3b82f6", strokeWidth: 2 }} name="Capaian (%)">
+                    <LabelList dataKey="capaian" position="top" fontSize={10} fill="#3b82f6" formatter={(v: number) => `${v}%`} />
+                  </Line>
+                </ComposedChart>
               </ResponsiveContainer>
             </div>
           </div>
@@ -508,20 +519,20 @@ export default function PresentasiPage() {
           <div className="card-body p-0 overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-gray-50 border-b border-gray-200">
-                  <th className="text-left px-3 py-3 font-medium text-gray-600 text-[11px]" rowSpan={2}>Plant</th>
-                  <th className="text-center px-3 py-3 font-medium text-gray-600 text-[11px] bg-orange-50/50" colSpan={4}>{monthLabel}</th>
-                  <th className="text-center px-3 py-3 font-medium text-gray-600 text-[11px] bg-orange-50/50" colSpan={4}>s/d {monthLabel}</th>
+                <tr className="bg-orange-50 border-b border-orange-200">
+                  <th className="text-left px-3 py-3.5 font-bold text-gray-800 text-xs uppercase tracking-wider bg-orange-100/80 border-x border-orange-200" rowSpan={2}>Plant</th>
+                  <th className="text-center px-3 py-3.5 font-bold text-gray-800 text-xs uppercase tracking-wider bg-orange-100/80 border-x border-orange-200" colSpan={4}>{monthLabel}</th>
+                  <th className="text-center px-3 py-3.5 font-bold text-gray-800 text-xs uppercase tracking-wider bg-orange-100/80 border-x border-orange-200" colSpan={4}>s/d {monthLabel}</th>
                 </tr>
                 <tr className="bg-gray-50 border-b border-gray-200">
-                  <th className="text-right px-2 py-2 font-medium text-gray-500 text-[10px]">RKAP</th>
-                  <th className="text-right px-2 py-2 font-medium text-gray-500 text-[10px]">Real</th>
-                  <th className="text-right px-2 py-2 font-medium text-gray-500 text-[10px]">Variance</th>
-                  <th className="text-right px-2 py-2 font-medium text-gray-500 text-[10px]">%</th>
-                  <th className="text-right px-2 py-2 font-medium text-gray-500 text-[10px]">RKAP</th>
-                  <th className="text-right px-2 py-2 font-medium text-gray-500 text-[10px]">Real</th>
-                  <th className="text-right px-2 py-2 font-medium text-gray-500 text-[10px]">Variance</th>
-                  <th className="text-right px-2 py-2 font-medium text-gray-500 text-[10px]">%</th>
+                  <th className="text-right px-2 py-2.5 font-semibold text-gray-700 text-[11px] border-r border-gray-100">RKAP</th>
+                  <th className="text-right px-2 py-2.5 font-semibold text-gray-700 text-[11px] border-r border-gray-100">Realisasi</th>
+                  <th className="text-right px-2 py-2.5 font-semibold text-gray-700 text-[11px] border-r border-gray-100">Variance</th>
+                  <th className="text-right px-2 py-2.5 font-semibold text-gray-700 text-[11px] border-r border-orange-200">%</th>
+                  <th className="text-right px-2 py-2.5 font-semibold text-gray-700 text-[11px] border-r border-gray-100">RKAP</th>
+                  <th className="text-right px-2 py-2.5 font-semibold text-gray-700 text-[11px] border-r border-gray-100">Realisasi</th>
+                  <th className="text-right px-2 py-2.5 font-semibold text-gray-700 text-[11px] border-r border-gray-100">Variance</th>
+                  <th className="text-right px-2 py-2.5 font-semibold text-gray-700 text-[11px]">%</th>
                 </tr>
               </thead>
               <tbody>
@@ -530,7 +541,7 @@ export default function PresentasiPage() {
                   const warnaBaris = d.capaian >= 100 ? "bg-emerald-50/30" : d.capaian >= 50 ? "" : "bg-red-50/20";
                   return (
                     <tr key={d.plantCode} className={`border-b border-gray-100 hover:bg-gray-50/50 transition-colors ${warnaBaris}`}>
-                      <td className="px-3 py-3">
+                      <td className="px-3 py-3 border-r border-orange-200">
                         <div className="flex items-center gap-2">
                           <span>{d.plantIcon}</span>
                           <span className="font-medium text-gray-900 text-xs">{d.plantName}</span>
@@ -542,8 +553,8 @@ export default function PresentasiPage() {
                       <td className={`px-2 py-3 text-right tabular-nums text-xs font-medium ${d.variance >= 0 ? "text-emerald-600" : "text-red-500"}`}>
                         {d.variance >= 0 ? "+" : ""}{formatCurrency(d.variance)}
                       </td>
-                      <td className="px-2 py-3 text-right">
-                        <span className={`inline-flex px-1.5 py-0.5 rounded-full text-[10px] font-semibold ${d.capaian >= 100 ? "bg-emerald-100 text-emerald-700" : d.capaian >= 50 ? "bg-amber-100 text-amber-700" : "bg-red-100 text-red-700"}`}>
+                      <td className="px-2 py-3 text-right border-r border-orange-200">
+                        <span className={`inline-flex px-1.5 py-0.5 rounded-full text-[10px] ${d.capaian >= 100 ? "bg-emerald-100 text-emerald-700" : d.capaian >= 50 ? "bg-amber-100 text-amber-700" : "bg-red-100 text-red-700"}`}>
                           {d.capaian}%
                         </span>
                       </td>
@@ -554,7 +565,7 @@ export default function PresentasiPage() {
                         {ytd.variance >= 0 ? "+" : ""}{formatCurrency(ytd.variance)}
                       </td>
                       <td className="px-2 py-3 text-right">
-                        <span className={`inline-flex px-1.5 py-0.5 rounded-full text-[10px] font-semibold ${ytd.capaian >= 100 ? "bg-emerald-100 text-emerald-700" : ytd.capaian >= 50 ? "bg-amber-100 text-amber-700" : "bg-red-100 text-red-700"}`}>
+                        <span className={`inline-flex px-1.5 py-0.5 rounded-full text-[10px] ${ytd.capaian >= 100 ? "bg-emerald-100 text-emerald-700" : ytd.capaian >= 50 ? "bg-amber-100 text-amber-700" : "bg-red-100 text-red-700"}`}>
                           {ytd.capaian}%
                         </span>
                       </td>
@@ -565,22 +576,30 @@ export default function PresentasiPage() {
               {/* Footer — Total */}
               <tfoot>
                 <tr className="bg-gray-50 border-t-2 border-gray-200">
-                  <td className="px-3 py-3 font-bold text-gray-800 text-xs">TOTAL</td>
+                  <td className="px-3 py-3 font-bold text-gray-800 text-xs border-r border-orange-200">TOTAL</td>
                   <td className="px-2 py-3 text-right font-bold text-gray-800 tabular-nums text-xs">{formatCurrency(totalMonth.rkap)}</td>
                   <td className="px-2 py-3 text-right font-bold text-gray-800 tabular-nums text-xs">{formatCurrency(totalMonth.real)}</td>
                   <td className={`px-2 py-3 text-right font-bold tabular-nums text-xs ${totalMonth.real - totalMonth.rkap >= 0 ? "text-emerald-600" : "text-red-500"}`}>
                     {totalMonth.real - totalMonth.rkap >= 0 ? "+" : ""}{formatCurrency(totalMonth.real - totalMonth.rkap)}
                   </td>
-                  <td className="px-2 py-3 text-right font-bold text-gray-800 text-xs">
-                    {totalMonth.rkap > 0 ? Math.round((totalMonth.real / totalMonth.rkap) * 100 * 10) / 10 : 0}%
+                  <td className="px-2 py-3 text-right border-r border-orange-200">
+                    {(() => { const p = totalMonth.rkap > 0 ? Math.round((totalMonth.real / totalMonth.rkap) * 100 * 10) / 10 : (totalMonth.real > 0 ? 100 : 0); return (
+                      <span className={`inline-flex px-1.5 py-0.5 rounded-full text-[10px] font-bold ${p >= 100 ? "bg-emerald-100 text-emerald-700" : p >= 50 ? "bg-amber-100 text-amber-700" : "bg-red-100 text-red-700"}`}>
+                        {p}%
+                      </span>
+                    ); })()}
                   </td>
                   <td className="px-2 py-3 text-right font-bold text-gray-800 tabular-nums text-xs">{formatCurrency(totalYTD.rkap)}</td>
                   <td className="px-2 py-3 text-right font-bold text-gray-800 tabular-nums text-xs">{formatCurrency(totalYTD.real)}</td>
                   <td className={`px-2 py-3 text-right font-bold tabular-nums text-xs ${totalYTD.real - totalYTD.rkap >= 0 ? "text-emerald-600" : "text-red-500"}`}>
                     {totalYTD.real - totalYTD.rkap >= 0 ? "+" : ""}{formatCurrency(totalYTD.real - totalYTD.rkap)}
                   </td>
-                  <td className="px-2 py-3 text-right font-bold text-gray-800 text-xs">
-                    {totalYTD.rkap > 0 ? Math.round((totalYTD.real / totalYTD.rkap) * 100 * 10) / 10 : 0}%
+                  <td className="px-2 py-3 text-right">
+                    {(() => { const p = totalYTD.rkap > 0 ? Math.round((totalYTD.real / totalYTD.rkap) * 100 * 10) / 10 : (totalYTD.real > 0 ? 100 : 0); return (
+                      <span className={`inline-flex px-1.5 py-0.5 rounded-full text-[10px] font-bold ${p >= 100 ? "bg-emerald-100 text-emerald-700" : p >= 50 ? "bg-amber-100 text-amber-700" : "bg-red-100 text-red-700"}`}>
+                        {p}%
+                      </span>
+                    ); })()}
                   </td>
                 </tr>
               </tfoot>
@@ -662,6 +681,7 @@ export default function PresentasiPage() {
                         <th className="text-right px-2 py-3 font-medium text-gray-600 text-[11px]">Jumlah Harga</th>
                         <th className="text-right px-2 py-3 font-medium text-gray-600 text-[11px]">Sewa CP</th>
                         <th className="text-right px-2 py-3 font-medium text-gray-600 text-[11px]">Total</th>
+                        <th className="text-left px-2 py-3 font-medium text-gray-600 text-[11px]">Keterangan</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -683,6 +703,7 @@ export default function PresentasiPage() {
                             <td className="px-2 py-3 text-right text-gray-600 tabular-nums whitespace-nowrap text-xs">{formatCurrency(row.jumlah_harga)}</td>
                             <td className="px-2 py-3 text-right text-gray-600 tabular-nums whitespace-nowrap text-xs">{row.sewa_cp > 0 ? formatCurrency(row.sewa_cp) : "-"}</td>
                             <td className="px-2 py-3 text-right font-semibold text-gray-900 tabular-nums whitespace-nowrap text-xs">{formatCurrency(row.total_harga)}</td>
+                            <td className="px-2 py-3 text-gray-500 text-xs max-w-[100px] truncate">{row.keterangan || "—"}</td>
                           </tr>
                         );
                       })}
@@ -703,6 +724,7 @@ export default function PresentasiPage() {
                         <td className="px-2 py-3 text-right font-bold text-gray-800 tabular-nums text-xs">
                           Rp {formatCurrency(dailyData.reduce((s, r) => s + r.total_harga, 0))}
                         </td>
+                        <td className="px-2 py-3 text-gray-500 text-xs"></td>
                       </tr>
                     </tfoot>
                   </table>

@@ -428,12 +428,12 @@ export default function PlantDetailPage() {
                   <th className="text-left px-2 sm:px-4 py-3 font-medium text-gray-600 whitespace-nowrap text-[11px] sm:text-xs">Pelanggan</th>
                   <th className="text-left px-2 sm:px-4 py-3 font-medium text-gray-600 whitespace-nowrap text-[11px] sm:text-xs">Pekerjaan</th>
                   <th className="text-left px-2 sm:px-4 py-3 font-medium text-gray-600 whitespace-nowrap text-[11px] sm:text-xs">Type</th>
-                  <th className="text-left px-2 sm:px-4 py-3 font-medium text-gray-600 whitespace-nowrap text-[11px] sm:text-xs hidden md:table-cell">Keterangan</th>
                   <th className="text-right px-2 sm:px-4 py-3 font-medium text-gray-600 whitespace-nowrap text-[11px] sm:text-xs">Vol (m³)</th>
                   <th className="text-right px-2 sm:px-4 py-3 font-medium text-gray-600 whitespace-nowrap text-[11px] sm:text-xs">Harga Satuan</th>
                   <th className="text-right px-2 sm:px-4 py-3 font-medium text-gray-600 whitespace-nowrap text-[11px] sm:text-xs">Jumlah Harga</th>
                   <th className="text-right px-2 sm:px-4 py-3 font-medium text-gray-600 whitespace-nowrap text-[11px] sm:text-xs">Sewa CP</th>
                   <th className="text-right px-2 sm:px-4 py-3 font-medium text-gray-600 whitespace-nowrap text-[11px] sm:text-xs">Total</th>
+                  <th className="text-left px-2 sm:px-4 py-3 font-medium text-gray-600 whitespace-nowrap text-[11px] sm:text-xs hidden md:table-cell">Keterangan</th>
                   {(isAdmin || isMarketing) && <th className="text-center px-2 sm:px-4 py-3 font-medium text-gray-600 whitespace-nowrap text-[11px] sm:text-xs">Aksi</th>}
                 </tr>
               </thead>
@@ -473,9 +473,6 @@ export default function PlantDetailPage() {
                             {row.type || "-"}
                           </span>
                         </td>
-                        <td className="px-2 sm:px-4 py-3 text-gray-500 text-xs max-w-[120px] truncate hidden md:table-cell">
-                          {row.keterangan || "—"}
-                        </td>
                         <td className="px-2 sm:px-4 py-3 text-right font-medium text-gray-900 tabular-nums whitespace-nowrap text-xs sm:text-sm">
                           {row.volume.toLocaleString("id-ID")}
                         </td>
@@ -490,6 +487,9 @@ export default function PlantDetailPage() {
                         </td>
                         <td className="px-2 sm:px-4 py-3 text-right font-semibold text-gray-900 tabular-nums whitespace-nowrap text-xs sm:text-sm">
                           {formatCurrency(row.total_harga)}
+                        </td>
+                        <td className="px-2 sm:px-4 py-3 text-gray-500 text-xs max-w-[120px] truncate hidden md:table-cell">
+                          {row.keterangan || "—"}
                         </td>
                         {(isAdmin || isMarketing) && (
                           <td className="px-2 sm:px-4 py-3 text-center">

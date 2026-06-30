@@ -243,12 +243,13 @@ export default function TabelProduksi({
               <th className="text-right px-3 py-3 font-semibold text-gray-600 text-[11px] uppercase tracking-wider whitespace-nowrap">Jumlah Harga</th>
               <th className="text-right px-3 py-3 font-semibold text-gray-600 text-[11px] uppercase tracking-wider whitespace-nowrap">Sewa CP</th>
               <th className="text-right px-3 py-3 font-semibold text-gray-600 text-[11px] uppercase tracking-wider whitespace-nowrap">Total</th>
+              <th className="text-left px-3 py-3 font-semibold text-gray-600 text-[11px] uppercase tracking-wider whitespace-nowrap">Keterangan</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50">
             {transactions.length === 0 ? (
               <tr>
-                <td colSpan={9} className="px-4 py-8 text-center text-gray-400">
+                <td colSpan={10} className="px-4 py-8 text-center text-gray-400">
                   Tidak ada transaksi untuk minggu ini
                 </td>
               </tr>
@@ -287,6 +288,9 @@ export default function TabelProduksi({
                   <td className="px-3 py-3 text-right font-semibold text-gray-900 tabular-nums whitespace-nowrap text-xs">
                     {formatCurrency(row.total_harga)}
                   </td>
+                  <td className="px-3 py-3 text-gray-500 text-xs max-w-[120px] truncate">
+                    {row.keterangan || "—"}
+                  </td>
                 </tr>
               ))
             )}
@@ -312,6 +316,7 @@ export default function TabelProduksi({
                 <td className="px-3 py-3 text-right tabular-nums font-bold text-primary-600 text-xs">
                   {formatCurrency(totalSemua)}
                 </td>
+                <td className="px-3 py-3 text-gray-500 text-xs"></td>
               </tr>
             </tfoot>
           )}

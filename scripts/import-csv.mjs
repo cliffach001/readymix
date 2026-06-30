@@ -20,54 +20,26 @@ const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 
 // === HELPERS ===
 
-/** Normalize Indonesian number string to float */
+/** Normalize Indonesian number string to float
+ *  Format Indonesia: "." = thousand separator, "," = decimal separator
+ *  Contoh: "1.420.000" → 1420000, "50,00" → 50.00
+ */
 function normalizeNumber(str) {
   if (!str || str.trim() === "") return 0;
   let s = str.trim();
 
-  // Replace decimal comma with decimal dot
-  s = s.replace(",", ".");
+  // Hapus semua spasi
+  s = s.replace(/\s+/g, "");
 
-  // Remove all non-numeric chars except dot
-  // But keep dots for now
+  // Jika ada angka dengan format ribuan (titik sebagai pemisah ribuan):
+  // 1. Hapus semua titik (pemisah ribuan)
+  // 2. Ganti koma dengan titik (desimal)
+  // Contoh: "1.420.000" → "1420000", "50,00" → "50.00"
+  s = s.replace(/\./g, "");   // hapus semua titik (pemisah ribuan)
+  s = s.replace(",", ".");    // ganti koma dengan titik desimal
 
-  // Handle values with weird dot patterns like "33.05.00", "16.05", etc.
-  const parts = s.split(".");
-
-  if (parts.length === 1) {
-    return parseFloat(s) || 0;
-  }
-
-  if (parts.length === 2) {
-    // e.g., "16.05" → check if 16.5
-    // parseInt("05") = 5
-    const intPart = parseInt(parts[0]);
-    const decPart = parseInt(parts[1]);
-    const decLen = parts[1].length;
-    if (isNaN(intPart)) return parseFloat(s) || 0;
-    if (isNaN(decPart)) return intPart;
-    // In Indonesian context, "16.05" might mean 16.5 or 16.05
-    // We detect: if jumlah_harga doesn't match, try both
-    return intPart + decPart / Math.pow(10, decLen);
-  }
-
-  if (parts.length >= 3) {
-    // e.g., "33.05.00" → first part is integer, rest might be format artifacts
-    const intPart = parseInt(parts[0]);
-    if (isNaN(intPart)) return parseFloat(parts[0]) || 0;
-
-    // Try interpreting as: integer + decimal where second part after first dot is decimal
-    // "33.05.00" → 33.05 (parse second part as decimal, ignore rest)
-    const decPart = parseInt(parts[1]);
-    if (isNaN(decPart)) return intPart;
-
-    // Check: if decPart has leading zero, it might be Indonesian format
-    // "05" → 5, so "33.05" → 33 + 5/100 = 33.05
-    const decLen = parts[1].length;
-    return intPart + decPart / Math.pow(10, decLen);
-  }
-
-  return parseFloat(s) || 0;
+  const val = parseFloat(s);
+  return isNaN(val) ? 0 : val;
 }
 
 /** Convert date from YY/MM/DD to YYYY-MM-DD */
@@ -98,6 +70,17 @@ function normalizeDate(dateStr) {
   }
 
   return trimmed;
+}
+
+/** Normalize timestamptz: fix out-of-range timezone offsets by clamping to +00 */
+function normalizeCreatedAt(str) {
+  if (!str) return null;
+  const trimmed = str.trim();
+  // Replace any timezone offset beyond +/-15 (PostgreSQL max) with +00
+  return trimmed.replace(/[+-](\d{2})(?::\d{2})?$/, (match, hours) => {
+    const h = parseInt(hours, 10);
+    return h > 15 ? "+00" : match;
+  });
 }
 
 // === MAIN ===
@@ -138,7 +121,8 @@ async function main() {
       jumlah_harga: normalizeNumber(cols[8]),
       sewa_cp: normalizeNumber(cols[9]),
       total_harga: normalizeNumber(cols[10]),
-      created_at: cols[11]?.trim() || null,
+      created_at: normalizeCreatedAt(cols[12]) || null,
+      keterangan: cols[11]?.trim().replace(/\r$/, "") || null,
     };
 
     // Validate tanggal
@@ -174,6 +158,21 @@ async function main() {
   }
 
   console.log(`📦 Existing records in input_data: ${count}`);
+
+  // === HAPUS SEMUA DATA LAMA ===
+  if (count > 0) {
+    console.log(`\n🗑️  Menghapus ${count} records lama...`);
+    const { error: deleteError } = await supabase
+      .from("input_data")
+      .delete()
+      .neq("id", "00000000-0000-0000-0000-000000000000"); // hapus semua
+
+    if (deleteError) {
+      console.error("❌ Gagal menghapus data:", deleteError.message);
+      process.exit(1);
+    }
+    console.log("✅ Data lama berhasil dihapus");
+  }
 
   // Insert in batches of 50
   const BATCH_SIZE = 50;
