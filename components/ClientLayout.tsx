@@ -6,6 +6,7 @@ import Sidebar from "@/components/Sidebar";
 import LoginScreen from "@/components/LoginScreen";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import NotifikasiBell from "@/components/NotifikasiBell";
+import NotifToggle from "@/components/NotifToggle";
 import Link from "next/link";
 import { LayoutDashboard, ClipboardList, BarChart3, Target, Users, User, LogOut } from "lucide-react";
 import { usePathname } from "next/navigation";
@@ -144,6 +145,7 @@ function LayoutContent({ children }: { children: ReactNode }) {
                       <User className="w-4 h-4" />
                       Profil
                     </Link>
+                    <NotifToggle />
                     <button
                       onClick={() => { setShowProfile(false); logout(); }}
                       className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm font-medium text-red-600 hover:bg-red-50 transition-all"

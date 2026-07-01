@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useState, useEffect, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { authenticateUser } from "@/lib/supabase-service";
-import { Eye, EyeOff, AlertCircle } from "lucide-react";
+import { Eye, EyeOff, AlertCircle, Smartphone } from "lucide-react";
 
 export default function LoginScreen() {
   const { login } = useAuth();
@@ -15,6 +15,31 @@ export default function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // ── PWA Install ──
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [isInstalled, setIsInstalled] = useState(false);
+
+  useEffect(() => {
+    if (window.matchMedia("(display-mode: standalone)").matches) {
+      setIsInstalled(true);
+      return;
+    }
+    const handler = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+    window.addEventListener("beforeinstallprompt", handler);
+    window.addEventListener("appinstalled", () => setIsInstalled(true));
+    return () => window.removeEventListener("beforeinstallprompt", handler);
+  }, []);
+
+  const handleInstall = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const result = await deferredPrompt.userChoice;
+    if (result.outcome === "accepted") setDeferredPrompt(null);
+  };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -153,7 +178,20 @@ export default function LoginScreen() {
             </button>
           </form>
 
-          <p className="text-center text-[11px] text-gray-400 mt-6">&copy; 2026 PT. Prima Karya Manunggal — design by NUI6184</p>
+          {/* ── PWA Install ── */}
+          {deferredPrompt && !isInstalled && (
+            <div className="mt-4">
+              <button
+                onClick={handleInstall}
+                className="w-full py-2.5 border-2 border-dashed border-orange-300 text-orange-600 rounded-xl font-medium text-sm hover:bg-orange-50 hover:border-orange-400 transition-all duration-200 flex items-center justify-center gap-2 group"
+              >
+                <Smartphone size={16} className="group-hover:animate-bounce" />
+                Install RM-Pocket
+              </button>
+            </div>
+          )}
+
+          <p className="text-center text-[11px] text-gray-400 mt-4">&copy; 2026 PT. Prima Karya Manunggal — design by NUI6184</p>
         </div>
       </div>
     </div>
