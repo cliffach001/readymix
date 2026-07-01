@@ -12,6 +12,7 @@ import {
 import type { UserRecord } from "@/lib/supabase-service";
 import { getPlantName, ROLE_LABELS, PLANTS } from "@/lib/auth-config";
 import { validatePassword } from "@/lib/utils";
+import { notifyAdmin } from "@/lib/notify-admin";
 import {
   Eye,
   EyeOff,
@@ -212,6 +213,11 @@ export default function ProfilePage() {
           old_password: profile!.password,
           new_password: newPassword.trim(),
           status: "pending",
+        });
+        notifyAdmin({
+          title: "🔑 Permintaan Reset Password",
+          body: `${user?.namaLengkap || "User"} meminta reset password akun`,
+          url: "/dashboard",
         });
         setResetSuccess(true);
         setNewPassword("");

@@ -17,6 +17,7 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import { useAuth } from "@/contexts/AuthContext";
 import { ArrowLeft, Calendar, Package, DollarSign, Plus, X, Save, RotateCcw, Pencil, Trash2 } from "lucide-react";
 import InputHistori from "@/components/InputHistori";
+import { notifyAdmin } from "@/lib/notify-admin";
 
 function formatCurrency(val: number) {
   return val.toLocaleString("id-ID");
@@ -158,6 +159,11 @@ export default function PlantDetailPage() {
               new_data: payload as any,
               notes: "",
             });
+            notifyAdmin({
+              title: "✏️ Permintaan Edit Data",
+              body: `${user?.namaLengkap || "Marketing"} mengajukan perubahan data di ${plantCode}`,
+              url: `/plant/${plantCode}`,
+            });
             alert("Permintaan perubahan telah dikirim ke Admin untuk disetujui");
           } else {
             alert("Anda tidak memiliki izin untuk mengubah data");
@@ -223,6 +229,11 @@ export default function PlantDetailPage() {
           original_data: original as any,
           new_data: null,
           notes: "",
+        });
+        notifyAdmin({
+          title: "🗑️ Permintaan Hapus Data",
+          body: `${user?.namaLengkap || "Marketing"} mengajukan penghapusan data "${pelanggan}"`,
+          url: `/plant/${plantCode}`,
         });
         alert("Permintaan penghapusan telah dikirim ke Manager/Admin untuk disetujui");
         loadData();
