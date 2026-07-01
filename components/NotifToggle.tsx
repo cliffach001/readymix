@@ -2,7 +2,14 @@
 
 import { useState, useEffect } from "react";
 import { Bell, BellOff, Loader2 } from "lucide-react";
-import { requestNotificationPermission, subscribeToPush } from "@/lib/notification";
+import {
+  requestNotificationPermission,
+  subscribeToPush,
+  unsubscribePush,
+  saveSubscriptionOnServer,
+  deleteSubscriptionOnServer,
+  getPushStatus,
+} from "@/lib/notification";
 
 /**
  * Tombol toggle push notification untuk dropdown profil.
@@ -14,14 +21,10 @@ export default function NotifToggle() {
     permission: NotificationPermission | "unavailable";
     subscribed: boolean;
   } | null>(null);
-
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    // Dynamically import untuk menghindari SSR issues
-    import("@/lib/notification").then((mod) => {
-      mod.getPushStatus().then(setStatus);
-    });
+    getPushStatus().then(setStatus).catch(() => setStatus(null));
   }, []);
 
   if (!status || !status.supported) return null;
@@ -30,33 +33,30 @@ export default function NotifToggle() {
     setBusy(true);
     try {
       if (status.subscribed) {
-        // Unsubscribe
+        // ── Unsubscribe ──
         const reg = await navigator.serviceWorker.ready;
         const sub = await reg.pushManager.getSubscription();
         if (sub) {
-          await sub.unsubscribe();
-          await fetch("/api/notifications/unsubscribe", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ endpoint: sub.endpoint }),
-          });
+          const endpoint = sub.endpoint;
+          await unsubscribePush();
+          await deleteSubscriptionOnServer(endpoint);
         }
         setStatus((prev) => prev ? { ...prev, subscribed: false } : prev);
       } else {
-        // Subscribe
+        // ── Subscribe ──
         const granted = await requestNotificationPermission();
-        if (granted) {
-          const sub = await subscribeToPush();
-          if (sub) {
-            await fetch("/api/notifications/subscribe", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(sub.toJSON()),
-            });
-          }
-          setStatus((prev) => prev ? { ...prev, permission: "granted", subscribed: true } : prev);
-        } else {
+
+        if (!granted) {
           setStatus((prev) => prev ? { ...prev, permission: "denied" } : prev);
+          return;
+        }
+
+        const sub = await subscribeToPush();
+
+        if (sub) {
+          // Simpan ke server — boleh gagal, yg penting subscription di browser aktif
+          await saveSubscriptionOnServer(sub);
+          setStatus((prev) => prev ? { ...prev, permission: "granted", subscribed: true } : prev);
         }
       }
     } catch (err) {

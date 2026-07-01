@@ -1,13 +1,20 @@
 /**
  * Utility untuk Push Notification — client-side
+ *
+ * VAPID public key dibaca dari NEXT_PUBLIC_VAPID_PUBLIC_KEY
+ * yang sudah di-set di .env.local dan di-deploy ke Vercel.
  */
 
-/** Dapatkan VAPID public key dari server */
-async function getVapidPublicKey(): Promise<string> {
-  const res = await fetch("/api/notifications/vapid-public-key");
-  if (!res.ok) throw new Error("Gagal mendapatkan VAPID public key");
-  const data = await res.json();
-  return data.publicKey;
+// VAPID public key diambil langsung dari env (available di client via NEXT_PUBLIC_)
+function getVapidPublicKey(): string {
+  if (typeof process !== "undefined" && process.env && process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY) {
+    return process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+  }
+  // Fallback: coba dari window.__ENV jika ada
+  if (typeof window !== "undefined" && (window as any).__NEXT_DATA__?.runtimeConfig?.NEXT_PUBLIC_VAPID_PUBLIC_KEY) {
+    return (window as any).__NEXT_DATA__.runtimeConfig.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+  }
+  throw new Error("NEXT_PUBLIC_VAPID_PUBLIC_KEY tidak ditemukan");
 }
 
 /** Minta permission notifikasi ke browser */
@@ -23,18 +30,35 @@ export async function subscribeToPush(): Promise<PushSubscription | null> {
   if (!("serviceWorker" in navigator)) return null;
 
   const reg = await navigator.serviceWorker.ready;
-  const publicKey = await getVapidPublicKey();
+  const publicKey = getVapidPublicKey();
 
   let subscription = await reg.pushManager.getSubscription();
 
   if (!subscription) {
     subscription = await reg.pushManager.subscribe({
       userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(publicKey) as unknown as string,
+      applicationServerKey: urlBase64ToUint8Array(publicKey) as any,
     });
   }
 
   return subscription;
+}
+
+/** Unsubscribe dari push notification */
+export async function unsubscribePush(): Promise<boolean> {
+  if (!("serviceWorker" in navigator)) return false;
+
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.getSubscription();
+    if (sub) {
+      await sub.unsubscribe();
+      return true;
+    }
+  } catch {
+    // ignore
+  }
+  return false;
 }
 
 /** Cek status subscription saat ini */
@@ -43,7 +67,10 @@ export async function getPushStatus(): Promise<{
   permission: NotificationPermission | "unavailable";
   subscribed: boolean;
 }> {
-  const supported = "Notification" in window && "serviceWorker" in navigator && "PushManager" in window;
+  const supported =
+    "Notification" in window &&
+    "serviceWorker" in navigator &&
+    "PushManager" in window;
 
   if (!supported) {
     return { supported: false, permission: "unavailable", subscribed: false };
@@ -63,6 +90,32 @@ export async function getPushStatus(): Promise<{
   }
 
   return { supported, permission, subscribed };
+}
+
+/** Hapus endpoint dari server (dipanggil setelah unsubscribe) */
+export async function deleteSubscriptionOnServer(endpoint: string) {
+  try {
+    await fetch("/api/notifications/unsubscribe", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ endpoint }),
+    });
+  } catch {
+    // silent
+  }
+}
+
+/** Simpan subscription ke server (dipanggil setelah subscribe) */
+export async function saveSubscriptionOnServer(sub: PushSubscription) {
+  try {
+    await fetch("/api/notifications/subscribe", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(sub.toJSON()),
+    });
+  } catch {
+    // silent — subscription di browser sudah aktif meski gagal simpan
+  }
 }
 
 // ──────────────────────────────────────────────
