@@ -12,6 +12,19 @@ import {
 import type { ApprovalRequestRecord, PasswordApprovalRecord } from "@/lib/supabase-service";
 import { useAuth } from "@/contexts/AuthContext";
 
+/** Kirim push notification ke user */
+async function notifyUser(username: string, title: string, body: string, url?: string) {
+  try {
+    await fetch("/api/notifications/send-to-user", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, title, body, url }),
+    });
+  } catch {
+    // silent
+  }
+}
+
 export function useApprovals() {
   const { user } = useAuth();
   const [pending, setPending] = useState<ApprovalRequestRecord[]>([]);
@@ -63,8 +76,17 @@ export function useApprovals() {
 
       if (type === 'password') {
         try {
+          const record = pendingPasswords.find((r) => r.id === id);
           await approvePasswordApproval(id, user.namaLengkap);
           setPendingPasswords((prev) => prev.filter((r) => r.id !== id));
+          // Notifikasi ke pemohon
+          if (record) {
+            notifyUser(record.nama_lengkap,
+              "✅ Reset Password Disetujui",
+              `Admin menyetujui permintaan reset password Anda`,
+              "/profil"
+            );
+          }
           return true;
         } catch (e) {
           console.error("Gagal menyetujui password:", e);
@@ -73,6 +95,7 @@ export function useApprovals() {
       }
 
       try {
+        const item = pending.find((r) => r.id === id);
         const updated = await approveInDb(id, user.namaLengkap);
 
         // Execute the actual action if approved
@@ -88,13 +111,22 @@ export function useApprovals() {
         }
 
         setPending((prev) => prev.filter((r) => r.id !== id));
+        // Notifikasi ke pemohon
+        if (item) {
+          const actionLabel = item.action_type === "edit" ? "perubahan data" : "penghapusan data";
+          notifyUser(item.requested_by,
+            `✅ ${item.action_type === "edit" ? "Edit" : "Hapus"} Data Disetujui`,
+            `${user.namaLengkap} menyetujui permintaan ${actionLabel} di ${item.plant_code}`,
+            `/plant/${item.plant_code}`
+          );
+        }
         return true;
       } catch (e) {
         console.error("Gagal menyetujui:", e);
         return false;
       }
     },
-    [user?.namaLengkap]
+    [user?.namaLengkap, pending, pendingPasswords]
   );
 
   const reject = useCallback(
@@ -103,8 +135,17 @@ export function useApprovals() {
 
       if (type === 'password') {
         try {
+          const record = pendingPasswords.find((r) => r.id === id);
           await rejectPasswordApproval(id, user.namaLengkap);
           setPendingPasswords((prev) => prev.filter((r) => r.id !== id));
+          // Notifikasi ke pemohon
+          if (record) {
+            notifyUser(record.nama_lengkap,
+              "❌ Reset Password Ditolak",
+              `Admin menolak permintaan reset password Anda`,
+              "/profil"
+            );
+          }
           return true;
         } catch (e) {
           console.error("Gagal menolak password:", e);
@@ -113,15 +154,25 @@ export function useApprovals() {
       }
 
       try {
+        const item = pending.find((r) => r.id === id);
         await rejectInDb(id, user.namaLengkap);
         setPending((prev) => prev.filter((r) => r.id !== id));
+        // Notifikasi ke pemohon
+        if (item) {
+          const actionLabel = item.action_type === "edit" ? "perubahan data" : "penghapusan data";
+          notifyUser(item.requested_by,
+            `❌ ${item.action_type === "edit" ? "Edit" : "Hapus"} Data Ditolak`,
+            `${user.namaLengkap} menolak permintaan ${actionLabel} di ${item.plant_code}`,
+            `/plant/${item.plant_code}`
+          );
+        }
         return true;
       } catch (e) {
         console.error("Gagal menolak:", e);
         return false;
       }
     },
-    [user?.namaLengkap]
+    [user?.namaLengkap, pending, pendingPasswords]
   );
 
   return {

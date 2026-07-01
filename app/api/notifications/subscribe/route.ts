@@ -8,7 +8,7 @@ import { getSupabase } from "@/lib/supabase";
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { endpoint, keys, expirationTime } = body;
+    const { endpoint, keys, username } = body;
 
     if (!endpoint || !keys?.p256dh || !keys?.auth) {
       return NextResponse.json(
@@ -32,6 +32,7 @@ export async function POST(request: Request) {
         .update({
           p256dh: keys.p256dh,
           auth: keys.auth,
+          username: username || null,
           user_agent: request.headers.get("user-agent") || null,
           updated_at: new Date().toISOString(),
         })
@@ -45,6 +46,7 @@ export async function POST(request: Request) {
           endpoint,
           p256dh: keys.p256dh,
           auth: keys.auth,
+          username: username || null,
           user_agent: request.headers.get("user-agent") || null,
         });
 

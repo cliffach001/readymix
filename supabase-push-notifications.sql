@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS push_subscriptions (
   endpoint   TEXT NOT NULL UNIQUE,
   p256dh     TEXT NOT NULL,
   auth       TEXT NOT NULL,
+  username   TEXT,                  -- username pemilik subscription (untuk notifikasi terarget)
   user_agent TEXT,
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Bell, BellOff, Loader2 } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   requestNotificationPermission,
   subscribeToPush,
@@ -16,6 +17,7 @@ import {
  * Muncul hanya jika browser mendukung Push API.
  */
 export default function NotifToggle() {
+  const { user } = useAuth();
   const [status, setStatus] = useState<{
     supported: boolean;
     permission: NotificationPermission | "unavailable";
@@ -55,7 +57,8 @@ export default function NotifToggle() {
 
         if (sub) {
           // Simpan ke server — boleh gagal, yg penting subscription di browser aktif
-          await saveSubscriptionOnServer(sub);
+          // Simpan dengan nama lengkap agar cocok dengan requested_by di approval_requests
+          await saveSubscriptionOnServer(sub, user?.namaLengkap || user?.email || undefined);
           setStatus((prev) => prev ? { ...prev, permission: "granted", subscribed: true } : prev);
         }
       }

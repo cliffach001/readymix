@@ -82,11 +82,10 @@ export async function sendPushToAll(payload: PushPayload) {
 }
 
 /**
- * Kirim push notification ke user-agent tertentu (misal dari header)
- * Implementasi bisa diperluas dengan menyimpan user_id di tabel subscription
+ * Kirim push notification ke username tertentu
  */
-export async function sendPushToUser(
-  userAgent: string,
+export async function sendPushToUsername(
+  username: string,
   payload: PushPayload
 ) {
   if (!vapidPublicKey || !vapidPrivateKey) {
@@ -98,9 +97,10 @@ export async function sendPushToUser(
   const { data: subscriptions, error } = await (supabase
     .from("push_subscriptions") as any)
     .select("endpoint, p256dh, auth")
-    .eq("user_agent", userAgent);
+    .eq("username", username);
 
   if (error || !subscriptions?.length) {
+    console.warn(`[PushSender] No subscriptions found for username: ${username}`);
     return { sent: 0, failed: 0 };
   }
 

@@ -106,12 +106,14 @@ export async function deleteSubscriptionOnServer(endpoint: string) {
 }
 
 /** Simpan subscription ke server (dipanggil setelah subscribe) */
-export async function saveSubscriptionOnServer(sub: PushSubscription) {
+export async function saveSubscriptionOnServer(sub: PushSubscription, username?: string) {
   try {
+    const payload: any = sub.toJSON();
+    if (username) payload.username = username;
     await fetch("/api/notifications/subscribe", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(sub.toJSON()),
+      body: JSON.stringify(payload),
     });
   } catch {
     // silent — subscription di browser sudah aktif meski gagal simpan
