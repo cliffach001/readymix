@@ -186,7 +186,7 @@ export default function LoginScreen() {
                 className="w-full py-2.5 border-2 border-dashed border-orange-300 text-orange-600 rounded-xl font-medium text-sm hover:bg-orange-50 hover:border-orange-400 transition-all duration-200 flex items-center justify-center gap-2 group"
               >
                 <Smartphone size={16} className="group-hover:animate-bounce" />
-                Install RM-Pocket
+                Install RMix Pocket
               </button>
             </div>
           )}

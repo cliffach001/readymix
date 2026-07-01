@@ -1,6 +1,6 @@
 {
   "name": "Penjualan Ready Mix",
-  "short_name": "RM-Pocket",
+  "short_name": "RMix Pocket",
   "description": "Monitoring penjualan ready mix PT. Prima Karya Manunggal",
   "start_url": "/",
   "display": "standalone",

@@ -12,7 +12,7 @@ export const metadata: Metadata = {
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
-    title: "RM-Pocket",
+    title: "RMix Pocket",
     statusBarStyle: "default",
   },
   icons: {
