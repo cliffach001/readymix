@@ -15,9 +15,12 @@ import {
 import type { PlantRow, InputDataRecord, AggregatedRow } from "@/lib/supabase-service";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { useAuth } from "@/contexts/AuthContext";
-import { ArrowLeft, Calendar, Package, DollarSign, Plus, X, Save, RotateCcw, Pencil, Trash2, Check, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Calendar, Package, DollarSign, Plus, X, Save, RotateCcw, Pencil, Trash2, Check, AlertTriangle, Download } from "lucide-react";
 import InputHistori from "@/components/InputHistori";
 import { notifyAdmin } from "@/lib/notify-admin";
+import * as XLSX from "xlsx";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 function formatCurrency(val: number) {
   return val.toLocaleString("id-ID");
@@ -59,7 +62,8 @@ export default function PlantDetailPage() {
   ];
   const CURRENT_YEAR = new Date().getFullYear();
   const CURRENT_MONTH = new Date().getMonth() + 1;
-  const [filterMonth, setFilterMonth] = useState(CURRENT_MONTH);
+  const [filterStartMonth, setFilterStartMonth] = useState(CURRENT_MONTH);
+  const [filterEndMonth, setFilterEndMonth] = useState(CURRENT_MONTH);
   const [filterYear, setFilterYear] = useState(CURRENT_YEAR);
 
   // Distinct field values for input history
@@ -404,14 +408,17 @@ export default function PlantDetailPage() {
     );
   }
 
-  // Filter: Bulan/Tahun + Search
+  // Filter: Bulan (range) + Tahun + Search
   const availableYears = Array.from(new Set(inputData.map((d) => new Date(d.tanggal + "T00:00:00").getFullYear()))).sort((a, b) => b - a);
   const searchLower = searchTerm.toLowerCase();
-  const filteredData = inputData.filter((row) => {
+  const monthRangeData = inputData.filter((row) => {
     const tgl = new Date(row.tanggal + "T00:00:00");
-    const matchMonth = tgl.getMonth() + 1 === filterMonth;
+    const m = tgl.getMonth() + 1;
+    const matchMonth = m >= filterStartMonth && m <= filterEndMonth;
     const matchYear = tgl.getFullYear() === filterYear;
-    if (!matchMonth || !matchYear) return false;
+    return matchMonth && matchYear;
+  });
+  const filteredData = monthRangeData.filter((row) => {
     return (
       row.nama_pelanggan.toLowerCase().includes(searchLower) ||
       row.uraian_pekerjaan.toLowerCase().includes(searchLower) ||
@@ -436,6 +443,224 @@ export default function PlantDetailPage() {
   const totalHarga = inputData.reduce((sum, d) => sum + d.total_harga, 0);
   const totalVolumeMonthly = monthlyData.reduce((sum, d) => sum + d.volume, 0);
   const totalTransaksi = inputData.length;
+
+  // ── Export Functions ──
+  const monthLabel = `${MONTHS.find((m) => m.num === filterStartMonth)?.label}_${MONTHS.find((m) => m.num === filterEndMonth)?.label}`;
+  const plantExportName = plant?.nama.replace("Ready Mix ", "") ?? plantCode;
+
+  const exportPlantExcel = () => {
+    if (filteredData.length === 0) return;
+    const rows = filteredData.map((r) => ({
+      Tanggal: r.tanggal,
+      Pelanggan: r.nama_pelanggan,
+      Pekerjaan: r.uraian_pekerjaan,
+      Type: r.type || "-",
+      "Vol (m³)": r.volume,
+      "Harga Satuan": r.harga_satuan,
+      "Jumlah Harga": r.jumlah_harga,
+      "Sewa CP": r.sewa_cp,
+      "Total Harga": r.total_harga,
+      Keterangan: r.keterangan || "",
+    }));
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, `${plantExportName}`);
+    const colWidths = Object.keys(rows[0]).map(() => ({ wch: 16 }));
+    ws["!cols"] = colWidths;
+    XLSX.writeFile(wb, `Penjualan_${plantExportName}_${monthLabel}_${filterYear}.xlsx`);
+  };
+
+  const exportPlantPDF = () => {
+    if (filteredData.length === 0) return;
+
+    const pdf = new jsPDF("l", "mm", "a4");
+    const pageW = pdf.internal.pageSize.getWidth();
+    const pageH = pdf.internal.pageSize.getHeight();
+    const margin = 20;
+    let totalPages = 0;
+
+    const now = new Date();
+    const tglStr = now.toLocaleDateString("id-ID", { day: "2-digit", month: "2-digit", year: "numeric" }).split("/").join(".");
+    const jamStr = now.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
+    const namaLengkap = user?.namaLengkap ?? user?.email ?? "unknown";
+
+    const primaryRGB: [number, number, number] = [0xE3, 0x48, 0x03];
+
+    const filterLabel = `${MONTHS.find((m) => m.num === filterStartMonth)?.label} - ${MONTHS.find((m) => m.num === filterEndMonth)?.label} ${filterYear}`;
+
+    // ── Header setiap halaman ──
+    const addHeader = () => {
+      pdf.setFillColor(...primaryRGB);
+      pdf.rect(0, 0, pageW, 3.5, "F");
+
+      pdf.setTextColor(60);
+      pdf.setFontSize(15);
+      pdf.setFont("helvetica", "bold");
+      pdf.text("Penjualan Ready Mix", pageW / 2, margin + 2, { align: "center" });
+
+      pdf.setFontSize(9);
+      pdf.setFont("helvetica", "normal");
+      pdf.setTextColor(100);
+      pdf.text("PT. Prima Karya Manunggal", pageW / 2, margin + 9, { align: "center" });
+
+      pdf.setFontSize(8);
+      pdf.setTextColor(130);
+      pdf.text(`Periode: ${filterLabel}  |  Plant: ${plantExportName}`, pageW / 2, margin + 15, { align: "center" });
+
+      pdf.setDrawColor(200);
+      pdf.setLineWidth(0.5);
+      pdf.line(margin, margin + 18.5, pageW - margin, margin + 18.5);
+    };
+
+    // ── Footer setiap halaman ──
+    const addFooter = (pageNum: number) => {
+      const fy = pageH - 8;
+      pdf.setFontSize(6.5);
+      pdf.setFont("helvetica", "normal");
+      pdf.setTextColor(150);
+      pdf.text(`© 2026 Penjualan Ready Mix — design by NUI6184`, margin, fy, { align: "left" });
+      pdf.text(`Hal. ${pageNum} dari ${totalPages}`, pageW / 2, fy, { align: "center" });
+      pdf.text(`Diekspor pada: ${tglStr} ${jamStr} — Oleh: ${namaLengkap}`, pageW - margin, fy, { align: "right" });
+    };
+
+    addHeader();
+
+    // ── Tabel ──
+    const tableRows = filteredData.map((r) => [
+      r.tanggal,
+      r.nama_pelanggan,
+      r.uraian_pekerjaan,
+      r.type || "-",
+      r.volume.toLocaleString("id-ID"),
+      `Rp ${formatCurrency(r.harga_satuan)}`,
+      `Rp ${formatCurrency(r.jumlah_harga)}`,
+      r.sewa_cp > 0 ? `Rp ${formatCurrency(r.sewa_cp)}` : "-",
+      `Rp ${formatCurrency(r.total_harga)}`,
+      r.keterangan || "",
+    ]);
+
+    // Hitung total keseluruhan
+    const totals = filteredData.reduce(
+      (acc, r) => ({
+        volume: acc.volume + r.volume,
+        jumlah_harga: acc.jumlah_harga + r.jumlah_harga,
+        sewa_cp: acc.sewa_cp + r.sewa_cp,
+        total_harga: acc.total_harga + r.total_harga,
+      }),
+      { volume: 0, jumlah_harga: 0, sewa_cp: 0, total_harga: 0 }
+    );
+
+    // Row total di akhir tabel
+    tableRows.push([
+      "TOTAL",
+      "",
+      "",
+      "",
+      totals.volume.toLocaleString("id-ID"),
+      "",
+      `Rp ${formatCurrency(totals.jumlah_harga)}`,
+      totals.sewa_cp > 0 ? `Rp ${formatCurrency(totals.sewa_cp)}` : "-",
+      `Rp ${formatCurrency(totals.total_harga)}`,
+      "",
+    ]);
+
+    // ── Auto Table ──
+    autoTable(pdf, {
+      head: [["Tanggal", "Pelanggan", "Pekerjaan", "Type", "Volume", "Harga Satuan", "Jumlah Harga", "Sewa CP", "Total", "Ket."]],
+      body: tableRows,
+      startY: margin + 22,
+      margin: { left: margin, right: margin, top: margin + 24, bottom: 18 },
+      tableWidth: "auto",
+      styles: {
+        fontSize: 7,
+        cellPadding: 2.5,
+        lineColor: [210, 210, 210],
+        lineWidth: 0.2,
+      },
+      headStyles: {
+        fillColor: primaryRGB,
+        textColor: 255,
+        fontStyle: "bold",
+        fontSize: 7.5,
+        halign: "center",
+      },
+      bodyStyles: {
+        textColor: 60,
+      },
+      alternateRowStyles: {
+        fillColor: [246, 246, 246],
+      },
+      columnStyles: {
+        0: { cellWidth: 24 },
+        1: { cellWidth: 34 },
+        2: { cellWidth: 34 },
+        3: { cellWidth: 18 },
+        4: { cellWidth: 22, halign: "right" },
+        5: { cellWidth: 28, halign: "right" },
+        6: { cellWidth: 28, halign: "right" },
+        7: { cellWidth: 22, halign: "right" },
+        8: { cellWidth: 25, halign: "right" },
+        9: { cellWidth: 22 },
+      },
+      didDrawPage: (data: any) => {
+        totalPages = pdf.getNumberOfPages();
+        addFooter(data.pageNumber);
+      },
+      didParseCell: (data: any) => {
+        if (data.row.index === filteredData.length) {
+          data.cell.styles.fontStyle = "bold";
+          data.cell.styles.fillColor = [255, 237, 224];
+          data.cell.styles.textColor = primaryRGB;
+        }
+      },
+    });
+
+    // ── Signature block di halaman terakhir ──
+    totalPages = pdf.getNumberOfPages();
+    const lastAutoTable = (pdf as any).lastAutoTable;
+    const finalY = lastAutoTable ? lastAutoTable.finalY + 8 : margin + 22;
+
+    const drawSignature = (sigY: number) => {
+      const sigLeftX = margin + 10;
+      const sigW = 70;
+      pdf.setDrawColor(200);
+      pdf.setLineWidth(0.3);
+      pdf.line(sigLeftX, sigY, sigLeftX + sigW, sigY);
+      pdf.setFontSize(9);
+      pdf.setFont("helvetica", "italic");
+      pdf.setTextColor(150);
+      pdf.text("Approved by", sigLeftX, sigY + 8, { align: "left" });
+      pdf.setFontSize(10);
+      pdf.setFont("helvetica", "bold");
+      pdf.setTextColor(60);
+      pdf.text("Seksi Penjualan Ready Mix", sigLeftX, sigY + 17, { align: "left" });
+    };
+
+    const sigSpace = 30;
+    if (finalY + sigSpace > pageH - 18) {
+      pdf.addPage();
+      addHeader();
+      addFooter(totalPages + 1);
+      totalPages = pdf.getNumberOfPages();
+      for (let i = 1; i <= totalPages; i++) {
+        pdf.setPage(i);
+        addFooter(i);
+      }
+      pdf.setPage(totalPages);
+      drawSignature(margin + 22);
+    } else {
+      drawSignature(finalY);
+    }
+
+    // Final pass: perbaiki footer dengan total halaman yang benar
+    totalPages = pdf.getNumberOfPages();
+    for (let i = 1; i <= totalPages; i++) {
+      pdf.setPage(i);
+      addFooter(i);
+    }
+
+    pdf.save(`Penjualan_${plantExportName}_${monthLabel}_${filterYear}.pdf`);
+  };
 
   return (
     <ProtectedRoute route="dashboard">
@@ -517,47 +742,61 @@ export default function PlantDetailPage() {
                 Data Penjualan{plant ? ` ${plant.nama.replace("Ready Mix ", "")}` : ""}
               </h3>
               <p className="text-xs text-gray-500">
-                {filteredData.length} transaksi{searchTerm || filterMonth || filterYear ? ` — ${MONTHS.find((m) => m.num === filterMonth)?.label} ${filterYear}${searchTerm ? `, cari "${searchTerm}"` : ""}${filteredData.length !== inputData.length ? ` (dari ${inputData.length})` : ""}` : ""}
+                {filteredData.length} transaksi{searchTerm || filterStartMonth || filterEndMonth || filterYear ? ` — ${MONTHS.find((m) => m.num === filterStartMonth)?.label} - ${MONTHS.find((m) => m.num === filterEndMonth)?.label} ${filterYear}${searchTerm ? `, cari "${searchTerm}"` : ""}${filteredData.length !== inputData.length ? ` (dari ${inputData.length})` : ""}` : ""}
               </p>
             </div>
-            <div className="flex flex-wrap items-center gap-2">
-              {/* Filter Bulan */}
-              <select
-                value={filterMonth}
-                onChange={(e) => { setFilterMonth(Number(e.target.value)); setCurrentPage(1); }}
-                disabled={editingRowId !== null}
-                className={`px-2 py-2 rounded-xl border text-xs bg-white focus:outline-none focus:ring-2 focus:ring-[#F35b04]/20 focus:border-[#F35b04] ${
-                  editingRowId !== null ? "bg-gray-100 cursor-not-allowed" : "border-gray-200"
-                }`}
-              >
-                {MONTHS.map((m) => (
-                  <option key={m.num} value={m.num}>{m.label}</option>
-                ))}
-              </select>
-              {/* Filter Tahun */}
-              <select
-                value={filterYear}
-                onChange={(e) => { setFilterYear(Number(e.target.value)); setCurrentPage(1); }}
-                disabled={editingRowId !== null}
-                className={`px-2 py-2 rounded-xl border text-xs bg-white focus:outline-none focus:ring-2 focus:ring-[#F35b04]/20 focus:border-[#F35b04] ${
-                  editingRowId !== null ? "bg-gray-100 cursor-not-allowed" : "border-gray-200"
-                }`}
-              >
-                {availableYears.length > 0 ? availableYears.map((y) => (
-                  <option key={y} value={y}>{y}</option>
-                )) : (
-                  <option value={CURRENT_YEAR}>{CURRENT_YEAR}</option>
-                )}
-              </select>
-              {/* Search */}
-              <div className="relative">
+            <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-2 w-full sm:w-auto">
+              {/* Baris 1: Filter bulan + tahun */}
+              <div className="flex items-center gap-2">
+                <select
+                  value={filterStartMonth}
+                  onChange={(e) => { setFilterStartMonth(Number(e.target.value)); setCurrentPage(1); }}
+                  disabled={editingRowId !== null}
+                  className={`px-2 py-2 rounded-xl border text-xs bg-white focus:outline-none focus:ring-2 focus:ring-[#F35b04]/20 focus:border-[#F35b04] ${
+                    editingRowId !== null ? "bg-gray-100 cursor-not-allowed" : "border-gray-200"
+                  }`}
+                >
+                  {MONTHS.map((m) => (
+                    <option key={m.num} value={m.num}>{m.label}</option>
+                  ))}
+                </select>
+                <span className="text-gray-400 text-xs font-medium shrink-0">—</span>
+                <select
+                  value={filterEndMonth}
+                  onChange={(e) => { setFilterEndMonth(Number(e.target.value)); setCurrentPage(1); }}
+                  disabled={editingRowId !== null}
+                  className={`px-2 py-2 rounded-xl border text-xs bg-white focus:outline-none focus:ring-2 focus:ring-[#F35b04]/20 focus:border-[#F35b04] ${
+                    editingRowId !== null ? "bg-gray-100 cursor-not-allowed" : "border-gray-200"
+                  }`}
+                >
+                  {MONTHS.map((m) => (
+                    <option key={m.num} value={m.num}>{m.label}</option>
+                  ))}
+                </select>
+                <select
+                  value={filterYear}
+                  onChange={(e) => { setFilterYear(Number(e.target.value)); setCurrentPage(1); }}
+                  disabled={editingRowId !== null}
+                  className={`px-2 py-2 rounded-xl border text-xs bg-white focus:outline-none focus:ring-2 focus:ring-[#F35b04]/20 focus:border-[#F35b04] ${
+                    editingRowId !== null ? "bg-gray-100 cursor-not-allowed" : "border-gray-200"
+                  }`}
+                >
+                  {availableYears.length > 0 ? availableYears.map((y) => (
+                    <option key={y} value={y}>{y}</option>
+                  )) : (
+                    <option value={CURRENT_YEAR}>{CURRENT_YEAR}</option>
+                  )}
+                </select>
+              </div>
+              {/* Baris 2: Search full-width mobile */}
+              <div className="relative w-full sm:w-auto sm:min-w-[180px]">
                 <input
                   type="text"
                   value={searchTerm}
                   onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
                   disabled={editingRowId !== null}
                   placeholder={editingRowId ? "Selesaikan edit terlebih dahulu..." : "Cari pelanggan, pekerjaan, type..."}
-                  className={`w-40 sm:w-44 px-3 py-2 pl-8 border rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-[#F35b04]/20 focus:border-[#F35b04] transition-all ${
+                  className={`w-full px-3 py-2 pl-8 border rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-[#F35b04]/20 focus:border-[#F35b04] transition-all ${
                     editingRowId !== null
                       ? "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed"
                       : "border-gray-200"
@@ -567,24 +806,42 @@ export default function PlantDetailPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
               </div>
-              {(isAdmin || isMarketing) && (
-                <button
-                  onClick={() => {
-                    // Cancel inline editing if active
-                    if (editingRowId !== null) {
-                      setEditingRowId(null);
-                      setEditForm({});
-                      setOriginalRowData(null);
-                    }
-                    resetForm();
-                    setShowModal(true);
-                  }}
-                  className="w-full sm:w-auto flex items-center gap-1.5 px-3 py-2 rounded-xl bg-gradient-to-r from-[#F35b04] to-orange-700 text-white text-xs sm:text-sm font-medium hover:from-[#F35b04] hover:to-orange-800 transition-all shadow-sm btn-glow btn-shimmer btn-scale justify-center sm:justify-start"
-                >
-                  <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                  <span className="sm:hidden">Input</span><span className="hidden sm:inline">Input Data</span>
-                </button>
-              )}
+              {/* Baris 3: Tombol action dalam 1 baris */}
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                {user?.role !== "marketing" && monthRangeData.length > 0 && (
+                  <button
+                    onClick={exportPlantExcel}
+                    className="inline-flex items-center gap-1 px-2.5 py-2 rounded-lg bg-emerald-600 text-white text-[10px] font-medium hover:bg-emerald-700 transition-all"
+                  >
+                    <Download className="w-3 h-3" /> Excel
+                  </button>
+                )}
+                {monthRangeData.length > 0 && (
+                  <button
+                    onClick={exportPlantPDF}
+                    className="inline-flex items-center gap-1 px-2.5 py-2 rounded-lg bg-red-600 text-white text-[10px] font-medium hover:bg-red-700 transition-all"
+                  >
+                    <Download className="w-3 h-3" /> PDF
+                  </button>
+                )}
+                {(isAdmin || isMarketing) && (
+                  <button
+                    onClick={() => {
+                      if (editingRowId !== null) {
+                        setEditingRowId(null);
+                        setEditForm({});
+                        setOriginalRowData(null);
+                      }
+                      resetForm();
+                      setShowModal(true);
+                    }}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-gradient-to-r from-[#F35b04] to-orange-700 text-white text-xs font-medium hover:from-[#F35b04] hover:to-orange-800 transition-all shadow-sm btn-glow btn-shimmer btn-scale"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Input Data</span>
+                  </button>
+                )}
+              </div>
             </div>
           </div>
           <div className="card-body p-0 overflow-x-auto">

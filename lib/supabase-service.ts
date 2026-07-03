@@ -1342,6 +1342,22 @@ export async function fetchPendingApprovals(): Promise<ApprovalRequestRecord[]> 
   return data ?? [];
 }
 
+export async function fetchApprovalRequestsByRequester(
+  requesterName: string,
+  limit = 50
+): Promise<ApprovalRequestRecord[]> {
+  const { data, error } = await getSupabase()
+    .from("approval_requests")
+    .select("*")
+    .eq("requested_by", requesterName)
+    .order("requested_at", { ascending: false })
+    .limit(limit)
+    .returns<ApprovalRequestRecord[]>();
+
+  if (error) throw error;
+  return data ?? [];
+}
+
 export async function approveRequest(
   id: string,
   reviewerName: string

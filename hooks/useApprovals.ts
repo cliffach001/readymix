@@ -8,6 +8,7 @@ import {
   fetchPendingPasswordApprovals,
   approvePasswordApproval,
   rejectPasswordApproval,
+  fetchApprovalRequestsByRequester,
 } from "@/lib/supabase-service";
 import type { ApprovalRequestRecord, PasswordApprovalRecord } from "@/lib/supabase-service";
 import { useAuth } from "@/contexts/AuthContext";
@@ -25,18 +26,53 @@ async function notifyUser(username: string, title: string, body: string, url?: s
   }
 }
 
+const SEEN_KEY = "rm-pkm-notif-seen";
+
+function getSeenIds(): Set<string> {
+  if (typeof window === "undefined") return new Set();
+  try {
+    const raw = localStorage.getItem(SEEN_KEY);
+    return new Set(raw ? JSON.parse(raw) : []);
+  } catch {
+    return new Set();
+  }
+}
+
+function saveSeenIds(ids: Set<string>) {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(SEEN_KEY, JSON.stringify(Array.from(ids)));
+}
+
 export function useApprovals() {
   const { user } = useAuth();
   const [pending, setPending] = useState<ApprovalRequestRecord[]>([]);
   const [pendingPasswords, setPendingPasswords] = useState<PasswordApprovalRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  // State untuk Marketing — melihat status permintaan sendiri
+  const [myRequests, setMyRequests] = useState<ApprovalRequestRecord[]>([]);
+  const [myRequestsLoading, setMyRequestsLoading] = useState(false);
+  const [seenVersion, setSeenVersion] = useState(0); // force re-render saat clear
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const isApprover = user?.role === "admin" || user?.role === "manager";
+  const isMarketing = user?.role === "marketing";
   // Hanya admin yang bisa menyetujui password
   const isPasswordApprover = user?.role === "admin";
-  const count = pending.length + pendingPasswords.length;
+
+  // Jumlah pending (untuk approver) + unseen (untuk marketing)
+  const myPendingCount = myRequests.filter((r) => r.status === "pending").length;
+  const count = isMarketing ? myPendingCount : pending.length + pendingPasswords.length;
+
+  // Hitung yang belum dibaca (untuk marketing): approved/rejected yang belum di-clear
+  // seenVersion digunakan agar React re-render saat clearMyNotifications dipanggil
+  const unseenCount = (() => {
+    if (!isMarketing) return 0;
+    const seen = getSeenIds();
+    void seenVersion; // referensi untuk memicu re-render
+    return myRequests.filter((r) => r.status !== "pending" && !seen.has(r.id)).length;
+  })();
 
   const refresh = useCallback(async () => {
     if (!isApprover) {
@@ -61,14 +97,40 @@ export function useApprovals() {
     }
   }, [isApprover, isPasswordApprover]);
 
+  // Fetch my requests (untuk marketing)
+  const fetchMyRequests = useCallback(async () => {
+    if (!isMarketing || !user?.namaLengkap) return;
+    setMyRequestsLoading(true);
+    try {
+      const data = await fetchApprovalRequestsByRequester(user.namaLengkap);
+      setMyRequests(data);
+    } catch (e) {
+      console.error("Gagal memuat status permintaan:", e);
+    } finally {
+      setMyRequestsLoading(false);
+    }
+  }, [isMarketing, user?.namaLengkap]);
+
+  // Clear notifikasi yang sudah dibaca (approved/rejected)
+  const clearMyNotifications = useCallback(() => {
+    const processed = myRequests.filter((r) => r.status !== "pending");
+    const ids = new Set([...Array.from(getSeenIds()), ...processed.map((r) => r.id)]);
+    saveSeenIds(ids);
+    setSeenVersion((v) => v + 1); // trigger re-render
+  }, [myRequests]);
+
   // Fetch on mount & every 30s
   useEffect(() => {
     refresh();
-    intervalRef.current = setInterval(refresh, 30000);
+    fetchMyRequests();
+    intervalRef.current = setInterval(() => {
+      refresh();
+      fetchMyRequests();
+    }, 30000);
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [refresh]);
+  }, [refresh, fetchMyRequests]);
 
   const approve = useCallback(
     async (id: string, type?: 'data' | 'password') => {
@@ -178,13 +240,20 @@ export function useApprovals() {
   return {
     pending,
     pendingPasswords,
+    myRequests,
+    myRequestsLoading,
+    seenVersion,
     count,
+    unseenCount,
     loading,
     error,
     refresh,
+    fetchMyRequests,
+    clearMyNotifications,
     approve,
     reject,
     isApprover,
+    isMarketing,
     isPasswordApprover,
   };
 }
