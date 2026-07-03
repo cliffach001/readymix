@@ -15,7 +15,7 @@ import {
 import type { PlantRow, InputDataRecord, AggregatedRow } from "@/lib/supabase-service";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { useAuth } from "@/contexts/AuthContext";
-import { ArrowLeft, Calendar, Package, DollarSign, Plus, X, Save, RotateCcw, Pencil, Trash2 } from "lucide-react";
+import { ArrowLeft, Calendar, Package, DollarSign, Plus, X, Save, RotateCcw, Pencil, Trash2, Check, AlertTriangle } from "lucide-react";
 import InputHistori from "@/components/InputHistori";
 import { notifyAdmin } from "@/lib/notify-admin";
 
@@ -41,6 +41,26 @@ export default function PlantDetailPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 20;
+
+  // ── Inline Editing (Admin) ──
+  const [editingRowId, setEditingRowId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState<Record<string, string>>({});
+  const [originalRowData, setOriginalRowData] = useState<InputDataRecord | null>(null);
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [pendingRowId, setPendingRowId] = useState<string | null>(null);
+  const [focusedField, setFocusedField] = useState<string>("");
+  const [dialogTrigger, setDialogTrigger] = useState<"save" | "switch">("save");
+
+  const MONTHS = [
+    { num: 1, label: "Januari" }, { num: 2, label: "Februari" }, { num: 3, label: "Maret" },
+    { num: 4, label: "April" }, { num: 5, label: "Mei" }, { num: 6, label: "Juni" },
+    { num: 7, label: "Juli" }, { num: 8, label: "Agustus" }, { num: 9, label: "September" },
+    { num: 10, label: "Oktober" }, { num: 11, label: "November" }, { num: 12, label: "Desember" },
+  ];
+  const CURRENT_YEAR = new Date().getFullYear();
+  const CURRENT_MONTH = new Date().getMonth() + 1;
+  const [filterMonth, setFilterMonth] = useState(CURRENT_MONTH);
+  const [filterYear, setFilterYear] = useState(CURRENT_YEAR);
 
   // Distinct field values for input history
   const fieldHistories = {
@@ -256,6 +276,97 @@ export default function PlantDetailPage() {
     }
   };
 
+  // ── Inline Edit Handlers (Admin) ──
+  const startInlineEdit = useCallback((row: InputDataRecord) => {
+    if (editingRowId !== null) return; // already editing
+    setEditForm({
+      tanggal: row.tanggal,
+      namaPelanggan: row.nama_pelanggan,
+      uraianPekerjaan: row.uraian_pekerjaan,
+      type: row.type ?? "",
+      volume: String(row.volume),
+      hargaSatuan: String(row.harga_satuan),
+      sewaCP: String(row.sewa_cp),
+      keterangan: row.keterangan ?? "",
+    });
+    setOriginalRowData(row);
+    setEditingRowId(row.id);
+  }, [editingRowId]);
+
+  const handleCellClick = (row: InputDataRecord) => {
+    if (!isAdmin) return;
+    if (editingRowId === null) {
+      startInlineEdit(row);
+      return;
+    }
+    if (editingRowId === row.id) return;
+    // Klik baris berbeda → muncul popup konfirmasi
+    setDialogTrigger("switch");
+    setPendingRowId(row.id);
+    setShowSaveDialog(true);
+  };
+
+  const handleSaveClick = () => {
+    // Klik icon centang → muncul popup konfirmasi simpan
+    setDialogTrigger("save");
+    setShowSaveDialog(true);
+  };
+
+  const confirmSaveInline = async () => {
+    if (!editingRowId) return;
+    const vol = parseFloat(editForm.volume) || 0;
+    const hs = parseFloat(editForm.hargaSatuan) || 0;
+    const scp = parseFloat(editForm.sewaCP) || 0;
+    if (vol <= 0 || hs <= 0) {
+      alert("Volume dan Harga Satuan harus lebih dari 0");
+      return;
+    }
+    try {
+      await updateInputData(editingRowId, {
+        plant_code: plantCode,
+        tanggal: editForm.tanggal,
+        nama_pelanggan: editForm.namaPelanggan,
+        uraian_pekerjaan: editForm.uraianPekerjaan,
+        type: editForm.type,
+        volume: vol,
+        harga_satuan: hs,
+        jumlah_harga: vol * hs,
+        sewa_cp: scp,
+        total_harga: vol * hs + scp,
+        keterangan: editForm.keterangan,
+      });
+      setEditingRowId(null);
+      setEditForm({});
+      setOriginalRowData(null);
+      setShowSaveDialog(false);
+      setPendingRowId(null);
+      loadData();
+    } catch (e) {
+      console.error(e);
+      alert("Gagal menyimpan data");
+    }
+  };
+
+  const confirmDiscardInline = () => {
+    setEditingRowId(null);
+    setEditForm({});
+    setOriginalRowData(null);
+    setShowSaveDialog(false);
+    setPendingRowId(null);
+  };
+
+  const cancelSwitchRow = () => {
+    setShowSaveDialog(false);
+    setPendingRowId(null);
+  };
+
+  // Derived computed values dari editForm
+  const editVol = parseFloat(editForm.volume) || 0;
+  const editHS = parseFloat(editForm.hargaSatuan) || 0;
+  const editSCP = parseFloat(editForm.sewaCP) || 0;
+  const editJumlahHarga = editVol * editHS;
+  const editTotal = editJumlahHarga + editSCP;
+
   // ── Loading ──
   if (loading) {
     return (
@@ -293,14 +404,20 @@ export default function PlantDetailPage() {
     );
   }
 
-  // Search & Pagination
+  // Filter: Bulan/Tahun + Search
+  const availableYears = Array.from(new Set(inputData.map((d) => new Date(d.tanggal + "T00:00:00").getFullYear()))).sort((a, b) => b - a);
   const searchLower = searchTerm.toLowerCase();
-  const filteredData = inputData.filter(
-    (row) =>
+  const filteredData = inputData.filter((row) => {
+    const tgl = new Date(row.tanggal + "T00:00:00");
+    const matchMonth = tgl.getMonth() + 1 === filterMonth;
+    const matchYear = tgl.getFullYear() === filterYear;
+    if (!matchMonth || !matchYear) return false;
+    return (
       row.nama_pelanggan.toLowerCase().includes(searchLower) ||
       row.uraian_pekerjaan.toLowerCase().includes(searchLower) ||
       (row.type || "").toLowerCase().includes(searchLower)
-  );
+    );
+  });
   const totalPages = Math.max(1, Math.ceil(filteredData.length / ITEMS_PER_PAGE));
   const paginatedData = filteredData.slice(
     (currentPage - 1) * ITEMS_PER_PAGE,
@@ -400,18 +517,51 @@ export default function PlantDetailPage() {
                 Data Penjualan{plant ? ` ${plant.nama.replace("Ready Mix ", "")}` : ""}
               </h3>
               <p className="text-xs text-gray-500">
-                {filteredData.length} transaksi{searchTerm ? ` (filter dari ${inputData.length})` : ""}
+                {filteredData.length} transaksi{searchTerm || filterMonth || filterYear ? ` — ${MONTHS.find((m) => m.num === filterMonth)?.label} ${filterYear}${searchTerm ? `, cari "${searchTerm}"` : ""}${filteredData.length !== inputData.length ? ` (dari ${inputData.length})` : ""}` : ""}
               </p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              {/* Filter Bulan */}
+              <select
+                value={filterMonth}
+                onChange={(e) => { setFilterMonth(Number(e.target.value)); setCurrentPage(1); }}
+                disabled={editingRowId !== null}
+                className={`px-2 py-2 rounded-xl border text-xs bg-white focus:outline-none focus:ring-2 focus:ring-[#F35b04]/20 focus:border-[#F35b04] ${
+                  editingRowId !== null ? "bg-gray-100 cursor-not-allowed" : "border-gray-200"
+                }`}
+              >
+                {MONTHS.map((m) => (
+                  <option key={m.num} value={m.num}>{m.label}</option>
+                ))}
+              </select>
+              {/* Filter Tahun */}
+              <select
+                value={filterYear}
+                onChange={(e) => { setFilterYear(Number(e.target.value)); setCurrentPage(1); }}
+                disabled={editingRowId !== null}
+                className={`px-2 py-2 rounded-xl border text-xs bg-white focus:outline-none focus:ring-2 focus:ring-[#F35b04]/20 focus:border-[#F35b04] ${
+                  editingRowId !== null ? "bg-gray-100 cursor-not-allowed" : "border-gray-200"
+                }`}
+              >
+                {availableYears.length > 0 ? availableYears.map((y) => (
+                  <option key={y} value={y}>{y}</option>
+                )) : (
+                  <option value={CURRENT_YEAR}>{CURRENT_YEAR}</option>
+                )}
+              </select>
               {/* Search */}
               <div className="relative">
                 <input
                   type="text"
                   value={searchTerm}
                   onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
-                  placeholder="Cari pelanggan, pekerjaan, type..."
-                  className="w-48 sm:w-56 px-3 py-2 pl-8 border border-gray-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-[#F35b04]/20 focus:border-[#F35b04]"
+                  disabled={editingRowId !== null}
+                  placeholder={editingRowId ? "Selesaikan edit terlebih dahulu..." : "Cari pelanggan, pekerjaan, type..."}
+                  className={`w-40 sm:w-44 px-3 py-2 pl-8 border rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-[#F35b04]/20 focus:border-[#F35b04] transition-all ${
+                    editingRowId !== null
+                      ? "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed"
+                      : "border-gray-200"
+                  }`}
                 />
                 <svg className="absolute left-2.5 top-2.5 w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -420,10 +570,16 @@ export default function PlantDetailPage() {
               {(isAdmin || isMarketing) && (
                 <button
                   onClick={() => {
+                    // Cancel inline editing if active
+                    if (editingRowId !== null) {
+                      setEditingRowId(null);
+                      setEditForm({});
+                      setOriginalRowData(null);
+                    }
                     resetForm();
                     setShowModal(true);
                   }}
-                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-gradient-to-r from-[#F35b04] to-orange-700 text-white text-xs sm:text-sm font-medium hover:from-[#F35b04] hover:to-orange-800 transition-all shadow-sm"
+                  className="w-full sm:w-auto flex items-center gap-1.5 px-3 py-2 rounded-xl bg-gradient-to-r from-[#F35b04] to-orange-700 text-white text-xs sm:text-sm font-medium hover:from-[#F35b04] hover:to-orange-800 transition-all shadow-sm btn-glow btn-shimmer btn-scale justify-center sm:justify-start"
                 >
                   <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                   <span className="sm:hidden">Input</span><span className="hidden sm:inline">Input Data</span>
@@ -444,7 +600,7 @@ export default function PlantDetailPage() {
                   <th className="text-right px-2 sm:px-4 py-3 font-medium text-gray-600 whitespace-nowrap text-[11px] sm:text-xs">Jumlah Harga</th>
                   <th className="text-right px-2 sm:px-4 py-3 font-medium text-gray-600 whitespace-nowrap text-[11px] sm:text-xs">Sewa CP</th>
                   <th className="text-right px-2 sm:px-4 py-3 font-medium text-gray-600 whitespace-nowrap text-[11px] sm:text-xs">Total</th>
-                  <th className="text-left px-2 sm:px-4 py-3 font-medium text-gray-600 whitespace-nowrap text-[11px] sm:text-xs hidden md:table-cell">Keterangan</th>
+                  <th className="text-left px-2 sm:px-4 py-3 font-medium text-gray-600 whitespace-nowrap text-[11px] sm:text-xs ">Keterangan</th>
                   {(isAdmin || isMarketing) && <th className="text-center px-2 sm:px-4 py-3 font-medium text-gray-600 whitespace-nowrap text-[11px] sm:text-xs">Aksi</th>}
                 </tr>
               </thead>
@@ -463,62 +619,158 @@ export default function PlantDetailPage() {
                       month: "short",
                       year: "numeric",
                     });
+                    const isEditing = editingRowId === row.id;
                     return (
                       <tr
                         key={row.id}
-                        className={`border-b border-gray-100 hover:bg-gray-50/50 transition-colors ${
-                          i === 0 ? "bg-orange-50/40" : ""
+                        className={`border-b border-gray-100 transition-colors ${
+                          i === 0 && !isEditing ? "bg-orange-50/40" : ""
+                        } ${
+                          isEditing
+                            ? "bg-blue-50/60 ring-2 ring-inset ring-[#F35b04]/20"
+                            : editingRowId === null && isAdmin
+                              ? "hover:bg-gray-50/50 cursor-pointer"
+                              : ""
                         }`}
+                        onClick={() => {
+                          if (!isEditing && isAdmin) handleCellClick(row);
+                        }}
                       >
-                        <td className="px-2 sm:px-4 py-3 text-gray-900 font-medium whitespace-nowrap text-xs sm:text-sm">
-                          {formatted}
+                        {/* Tanggal */}
+                        <td className={`px-2 sm:px-4 py-3 whitespace-nowrap text-xs sm:text-sm ${isEditing ? "p-0.5 sm:p-1" : ""}`}>
+                          {isEditing ? (
+                            <input type="date" value={editForm.tanggal}
+                              onChange={(e) => setEditForm((prev) => ({...prev, tanggal: e.target.value}))}
+                              className="w-full min-w-[90px] px-1 py-1 border border-[#F35b04] rounded-md text-xs focus:outline-none focus:ring-2 focus:ring-[#F35b04]/30 bg-white"
+                            />
+                          ) : (
+                            <span className="font-medium text-gray-900">{formatted}</span>
+                          )}
                         </td>
-                        <td className="px-2 sm:px-4 py-3 text-gray-700 whitespace-nowrap text-xs sm:text-sm max-w-[120px] sm:max-w-[200px] truncate">
-                          {row.nama_pelanggan}
+                        {/* Pelanggan */}
+                        <td className={`px-2 sm:px-4 py-3 whitespace-nowrap text-xs sm:text-sm max-w-[120px] sm:max-w-[200px] ${isEditing ? "p-0.5 sm:p-1" : ""}`}>
+                          {isEditing ? (
+                            <input type="text" value={editForm.namaPelanggan}
+                              onChange={(e) => setEditForm((prev) => ({...prev, namaPelanggan: e.target.value}))}
+                              className="w-full min-w-[80px] px-1 py-1 border border-[#F35b04] rounded-md text-xs focus:outline-none focus:ring-2 focus:ring-[#F35b04]/30 bg-white"
+                            />
+                          ) : (
+                            <span className="text-gray-700 truncate block">{row.nama_pelanggan}</span>
+                          )}
                         </td>
-                        <td className="px-2 sm:px-4 py-3 text-gray-600 whitespace-nowrap text-xs sm:text-sm max-w-[100px] sm:max-w-[180px] truncate">
-                          {row.uraian_pekerjaan}
+                        {/* Pekerjaan */}
+                        <td className={`px-2 sm:px-4 py-3 whitespace-nowrap text-xs sm:text-sm max-w-[100px] sm:max-w-[180px] ${isEditing ? "p-0.5 sm:p-1" : ""}`}>
+                          {isEditing ? (
+                            <input type="text" value={editForm.uraianPekerjaan}
+                              onChange={(e) => setEditForm((prev) => ({...prev, uraianPekerjaan: e.target.value}))}
+                              className="w-full min-w-[80px] px-1 py-1 border border-[#F35b04] rounded-md text-xs focus:outline-none focus:ring-2 focus:ring-[#F35b04]/30 bg-white"
+                            />
+                          ) : (
+                            <span className="text-gray-600 truncate block">{row.uraian_pekerjaan}</span>
+                          )}
                         </td>
-                        <td className="px-2 sm:px-4 py-3 whitespace-nowrap text-xs sm:text-sm">
-                          <span className="inline-flex px-1.5 py-0.5 rounded text-[10px] sm:text-xs bg-gray-100 text-gray-600">
-                            {row.type || "-"}
-                          </span>
+                        {/* Type */}
+                        <td className={`px-2 sm:px-4 py-3 whitespace-nowrap text-xs sm:text-sm ${isEditing ? "p-0.5 sm:p-1" : ""}`}>
+                          {isEditing ? (
+                            <input type="text" value={editForm.type}
+                              onChange={(e) => setEditForm((prev) => ({...prev, type: e.target.value}))}
+                              className="w-full min-w-[70px] px-1 py-1 border border-[#F35b04] rounded-md text-xs focus:outline-none focus:ring-2 focus:ring-[#F35b04]/30 bg-white"
+                            />
+                          ) : (
+                            <span className="inline-flex px-1.5 py-0.5 rounded text-[10px] sm:text-xs bg-gray-100 text-gray-600">
+                              {row.type || "-"}
+                            </span>
+                          )}
                         </td>
-                        <td className="px-2 sm:px-4 py-3 text-right font-medium text-gray-900 tabular-nums whitespace-nowrap text-xs sm:text-sm">
-                          {row.volume.toLocaleString("id-ID")}
+                        {/* Volume */}
+                        <td className={`px-2 sm:px-4 py-3 whitespace-nowrap text-xs sm:text-sm ${isEditing ? "p-0.5 sm:p-1" : "text-right"}`}>
+                          {isEditing ? (
+                            <input type="number" value={editForm.volume} min="0" step="0.01"
+                              onChange={(e) => setEditForm((prev) => ({...prev, volume: e.target.value}))}
+                              className="w-full min-w-[60px] px-1 py-1 border border-[#F35b04] rounded-md text-xs text-right focus:outline-none focus:ring-2 focus:ring-[#F35b04]/30 bg-white tabular-nums"
+                            />
+                          ) : (
+                            <span className="font-medium text-gray-900 tabular-nums">{row.volume.toLocaleString("id-ID")}</span>
+                          )}
                         </td>
+                        {/* Harga Satuan */}
+                        <td className={`px-2 sm:px-4 py-3 whitespace-nowrap text-xs sm:text-sm ${isEditing ? "p-0.5 sm:p-1" : "text-right"}`}>
+                          {isEditing ? (
+                            <input type="number" value={editForm.hargaSatuan} min="0" step="1"
+                              onChange={(e) => setEditForm((prev) => ({...prev, hargaSatuan: e.target.value}))}
+                              className="w-full min-w-[80px] px-1 py-1 border border-[#F35b04] rounded-md text-xs text-right focus:outline-none focus:ring-2 focus:ring-[#F35b04]/30 bg-white tabular-nums"
+                            />
+                          ) : (
+                            <span className="text-gray-600 tabular-nums">{formatCurrency(row.harga_satuan)}</span>
+                          )}
+                        </td>
+                        {/* Jumlah Harga (computed — tidak bisa diedit) */}
                         <td className="px-2 sm:px-4 py-3 text-right text-gray-600 tabular-nums whitespace-nowrap text-xs sm:text-sm">
-                          {formatCurrency(row.harga_satuan)}
+                          {isEditing ? formatCurrency(editJumlahHarga) : formatCurrency(row.jumlah_harga)}
                         </td>
-                        <td className="px-2 sm:px-4 py-3 text-right text-gray-600 tabular-nums whitespace-nowrap text-xs sm:text-sm">
-                          {formatCurrency(row.jumlah_harga)}
+                        {/* Sewa CP */}
+                        <td className={`px-2 sm:px-4 py-3 whitespace-nowrap text-xs sm:text-sm ${isEditing ? "p-0.5 sm:p-1" : "text-right"}`}>
+                          {isEditing ? (
+                            <input type="number" value={editForm.sewaCP} min="0" step="1000"
+                              onChange={(e) => setEditForm((prev) => ({...prev, sewaCP: e.target.value}))}
+                              className="w-full min-w-[70px] px-1 py-1 border border-[#F35b04] rounded-md text-xs text-right focus:outline-none focus:ring-2 focus:ring-[#F35b04]/30 bg-white tabular-nums"
+                            />
+                          ) : (
+                            <span className="text-gray-600 tabular-nums">{row.sewa_cp > 0 ? formatCurrency(row.sewa_cp) : "-"}</span>
+                          )}
                         </td>
-                        <td className="px-2 sm:px-4 py-3 text-right text-gray-600 tabular-nums whitespace-nowrap text-xs sm:text-sm">
-                          {row.sewa_cp > 0 ? formatCurrency(row.sewa_cp) : "-"}
-                        </td>
+                        {/* Total (computed — tidak bisa diedit) */}
                         <td className="px-2 sm:px-4 py-3 text-right font-semibold text-gray-900 tabular-nums whitespace-nowrap text-xs sm:text-sm">
-                          {formatCurrency(row.total_harga)}
+                          {isEditing ? formatCurrency(editTotal) : formatCurrency(row.total_harga)}
                         </td>
-                        <td className="px-2 sm:px-4 py-3 text-gray-500 text-xs max-w-[120px] truncate hidden md:table-cell">
-                          {row.keterangan || "—"}
+                        {/* Keterangan */}
+                        <td className={`px-2 sm:px-4 py-3 text-xs max-w-[120px] ${isEditing ? "p-0.5 sm:p-1" : ""}`}>
+                          {isEditing ? (
+                            <input type="text" value={editForm.keterangan}
+                              onChange={(e) => setEditForm((prev) => ({...prev, keterangan: e.target.value}))}
+                              className="w-full min-w-[80px] px-1 py-1 border border-[#F35b04] rounded-md text-xs focus:outline-none focus:ring-2 focus:ring-[#F35b04]/30 bg-white"
+                            />
+                          ) : (
+                            <span className="text-gray-500 truncate block">{row.keterangan || "—"}</span>
+                          )}
                         </td>
+                        {/* Aksi */}
                         {(isAdmin || isMarketing) && (
                           <td className="px-2 sm:px-4 py-3 text-center">
-                            <div className="flex items-center justify-center gap-1">
-                              <button
-                                onClick={() => openEditInput(row)}
-                                className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-all"
-                                title="Edit"
-                              >
-                                <Pencil className="w-4 h-4" />
-                              </button>
-                              <button
-                                onClick={() => handleDeleteInput(row.id, row.nama_pelanggan)}
-                                className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-all"
-                                title="Hapus"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
+                            <div className="flex items-center justify-center gap-1" onClick={(e) => e.stopPropagation()}>
+                              {isMarketing && (
+                                <button
+                                  onClick={() => openEditInput(row)}
+                                  className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-all"
+                                  title="Edit"
+                                >
+                                  <Pencil className="w-4 h-4" />
+                                </button>
+                              )}
+                              {isEditing ? (
+                                <button
+                                  onClick={handleSaveClick}
+                                  className="p-1.5 rounded-lg text-green-600 hover:bg-green-50 transition-all"
+                                  title="Simpan"
+                                >
+                                  <Check className="w-4 h-4" />
+                                </button>
+                              ) : (
+                                <button
+                                  onClick={() => {
+                                    if (editingRowId) {
+                                      setEditingRowId(null);
+                                      setEditForm({});
+                                      setOriginalRowData(null);
+                                    }
+                                    handleDeleteInput(row.id, row.nama_pelanggan);
+                                  }}
+                                  className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-all"
+                                  title="Hapus"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              )}
                             </div>
                           </td>
                         )}
@@ -553,14 +805,14 @@ export default function PlantDetailPage() {
             </table>
             {/* Pagination */}
             {filteredData.length > ITEMS_PER_PAGE && (
-              <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100">
+              <div className={`flex items-center justify-between px-4 py-3 border-t border-gray-100 ${editingRowId !== null ? "opacity-50" : ""}`}>
                 <p className="text-xs text-gray-500">
                   {startRow}–{endRow} dari {filteredData.length}
                 </p>
                 <div className="flex items-center gap-1">
                   <button
                     onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                    disabled={currentPage === 1}
+                    disabled={currentPage === 1 || editingRowId !== null}
                     className="px-2.5 py-1.5 rounded-lg text-xs font-medium border border-gray-200 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-50 transition-all"
                   >
                     Prev
@@ -573,11 +825,12 @@ export default function PlantDetailPage() {
                       <button
                         key={page}
                         onClick={() => setCurrentPage(page)}
+                        disabled={editingRowId !== null}
                         className={`px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-all ${
                           page === currentPage
                             ? "bg-gradient-to-r from-[#F35b04] to-orange-700 text-white border-[#F35b04]"
                             : "border-gray-200 hover:bg-gray-50"
-                        }`}
+                        } disabled:opacity-30 disabled:cursor-not-allowed`}
                       >
                         {page}
                       </button>
@@ -585,7 +838,7 @@ export default function PlantDetailPage() {
                   })}
                   <button
                     onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                    disabled={currentPage === totalPages}
+                    disabled={currentPage === totalPages || editingRowId !== null}
                     className="px-2.5 py-1.5 rounded-lg text-xs font-medium border border-gray-200 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-50 transition-all"
                   >
                     Next
@@ -682,6 +935,46 @@ export default function PlantDetailPage() {
         </div>
 
       </div>
+
+      {/* ── Dialog Konfirmasi Simpan ── */}
+      {showSaveDialog && (
+        <>
+          <div className="fixed inset-0 z-40 bg-black/30 backdrop-blur-sm" onClick={dialogTrigger === "switch" ? cancelSwitchRow : confirmDiscardInline} />
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="w-full max-w-sm bg-white rounded-2xl shadow-2xl border border-gray-100 p-6 text-center">
+              <div className="mx-auto w-12 h-12 rounded-full bg-orange-100 flex items-center justify-center mb-4">
+                <AlertTriangle className="w-6 h-6 text-[#F35b04]" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Konfirmasi</h3>
+              <p className="text-sm text-gray-600 mb-6">
+                Apakah ingin menyimpan data ini?
+              </p>
+              <div className="flex flex-col sm:flex-row gap-2 justify-center">
+                <button
+                  onClick={confirmSaveInline}
+                  className="px-5 py-2.5 bg-gradient-to-r from-[#F35b04] to-orange-700 text-white text-sm font-medium rounded-xl hover:from-[#F35b04] hover:to-orange-800 transition-all shadow-sm"
+                >
+                  Ya
+                </button>
+                <button
+                  onClick={confirmDiscardInline}
+                  className="px-5 py-2.5 text-sm font-medium text-gray-600 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-all"
+                >
+                  Tidak
+                </button>
+                {dialogTrigger === "switch" && (
+                  <button
+                    onClick={cancelSwitchRow}
+                    className="px-5 py-2.5 text-sm font-medium text-[#F35b04] bg-orange-50 border border-orange-200 rounded-xl hover:bg-orange-100 transition-all"
+                  >
+                    Lanjut Mengedit
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* ── Modal Input Data ── */}
       {showModal && (

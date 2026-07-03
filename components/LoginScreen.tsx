@@ -118,7 +118,7 @@ export default function LoginScreen() {
                   type="text"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  className="w-full pl-9 sm:pl-10 pr-4 py-2 sm:py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm focus:border-[#F35b04] focus:bg-white focus:ring-4 focus:ring-[#F35b04]/10 outline-none transition-all"
+                  className="w-full pl-9 sm:pl-10 pr-4 py-2 sm:py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm focus:border-blue-600 focus:bg-white focus:ring-4 focus:ring-blue-600/10 outline-none transition-all"
                   placeholder="Masukkan username"
                 />
               </div>
@@ -135,7 +135,7 @@ export default function LoginScreen() {
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-9 sm:pl-10 pr-9 sm:pr-10 py-2 sm:py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm focus:border-[#F35b04] focus:bg-white focus:ring-4 focus:ring-[#F35b04]/10 outline-none transition-all"
+                  className="w-full pl-9 sm:pl-10 pr-9 sm:pr-10 py-2 sm:py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm focus:border-blue-600 focus:bg-white focus:ring-4 focus:ring-blue-600/10 outline-none transition-all"
                   placeholder="Masukkan password"
                 />
                 <button
@@ -163,7 +163,7 @@ export default function LoginScreen() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 bg-gradient-to-r from-orange-600 to-orange-700 text-white rounded-xl font-semibold text-sm hover:shadow-lg hover:shadow-orange-500/25 transition-all duration-200 disabled:opacity-60 flex items-center justify-center gap-2 relative overflow-hidden group"
+              className="w-full py-3 bg-gradient-to-r from-blue-800 to-blue-950 text-white rounded-xl font-semibold text-sm transition-all duration-200 disabled:opacity-60 flex items-center justify-center gap-2 relative overflow-hidden group btn-glow btn-shimmer btn-scale"
             >
               <span className={`${loading ? "opacity-0" : ""}`}>
                 {loading ? "" : "Masuk"}

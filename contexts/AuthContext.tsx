@@ -14,11 +14,9 @@ import { STORAGE_KEY_AUTH } from "@/lib/auth-config";
 
 const CHECK_INTERVAL = 30 * 1000; // cek setiap 30 detik
 
-function getTimeoutByRole(role: string | undefined): number {
-  // Admin: 30 menit, Manager/Marketing: 20 menit, lainnya: 10 menit
-  if (role === "admin") return 30 * 60 * 1000;
-  if (role === "manager" || role === "marketing") return 20 * 60 * 1000;
-  return 10 * 60 * 1000;
+function getTimeoutByRole(_role: string | undefined): number {
+  // Semua role: 8 jam
+  return 8 * 60 * 60 * 1000;
 }
 
 // ============================================================
