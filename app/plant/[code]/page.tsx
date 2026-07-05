@@ -126,6 +126,13 @@ export default function PlantDetailPage() {
     loadData();
   }, [loadData]);
 
+  // Auto-redirect ke dashboard jika akses ditolak (marketing buka plant lain)
+  useEffect(() => {
+    if (error?.includes("Akses ditolak")) {
+      router.replace("/dashboard");
+    }
+  }, [error, router]);
+
   const resetForm = () => {
     setForm({
       tanggal: new Date().toISOString().split("T")[0],
@@ -394,14 +401,20 @@ export default function PlantDetailPage() {
       <ProtectedRoute route="dashboard">
         <div className="p-6">
           <div className="card p-8 text-center">
-            <p className="text-gray-400">{error || "Plant tidak ditemukan"}</p>
-            <button
-              onClick={() => router.push("/dashboard")}
-              className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-[#F35b04] to-orange-700 text-white text-sm font-medium hover:from-[#F35b04] hover:to-orange-800"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Kembali ke Dashboard
-            </button>
+            <p className="text-gray-400">
+              {error?.includes("Akses ditolak")
+                ? "Mengalihkan ke dashboard..."
+                : error || "Plant tidak ditemukan"}
+            </p>
+            {!error?.includes("Akses ditolak") && (
+              <button
+                onClick={() => router.push("/dashboard")}
+                className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-[#F35b04] to-orange-700 text-white text-sm font-medium hover:from-[#F35b04] hover:to-orange-800"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                Kembali ke Dashboard
+              </button>
+            )}
           </div>
         </div>
       </ProtectedRoute>

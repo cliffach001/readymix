@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   ComposedChart,
   Bar,
@@ -27,6 +27,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import html2canvas from "html2canvas";
 
 const MONTHS = [
   { num: 1, label: "Januari" },
@@ -62,6 +63,8 @@ export default function PresentasiPage() {
   const [selectedDailyPlant, setSelectedDailyPlant] = useState("kendari");
   const [loadingDaily, setLoadingDaily] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [showCapture, setShowCapture] = useState(false);
+  const contentRef = useRef<HTMLDivElement>(null);
 
   const { data: initialData, loading: initialLoading } = useBackgroundRefresh(
     () =>
@@ -155,6 +158,10 @@ export default function PresentasiPage() {
   /** Total seluruh plant */
   const totalMonth = monthlyData.reduce((s, d) => ({ rkap: s.rkap + d.rkap, real: s.real + d.real }), { rkap: 0, real: 0 });
   const totalYTD = ytdData.reduce((s, d) => ({ rkap: s.rkap + d.rkap, real: s.real + d.real }), { rkap: 0, real: 0 });
+
+  /** Capaian persen */
+  const capaianBulan = totalMonth.rkap > 0 ? Math.round((totalMonth.real / totalMonth.rkap) * 100 * 10) / 10 : (totalMonth.real > 0 ? 100 : 0);
+  const capaianYTD = totalYTD.rkap > 0 ? Math.round((totalYTD.real / totalYTD.rkap) * 100 * 10) / 10 : (totalYTD.real > 0 ? 100 : 0);
 
   // Chart data per plant
   const chartPerPlant = monthlyData.map((d) => ({
@@ -387,6 +394,205 @@ export default function PresentasiPage() {
     pdf.save(`Produksi_Harian_${plantName}_${monthLabel}_${selectedYear}.pdf`);
   };
 
+  // ── Export PDF Presentasi (Overview) ──
+
+  const exportPresentasiPDF = async () => {
+    setShowCapture(true);
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+
+    const pdf = new jsPDF("p", "mm", "a4");
+    const pageW = pdf.internal.pageSize.getWidth();
+    const pageH = pdf.internal.pageSize.getHeight();
+    const margin = 20;
+    let totalPages = 0;
+
+    const primaryRGB: [number, number, number] = [0xE3, 0x48, 0x03]; // #F35b04
+
+    const now = new Date();
+    const tglStr = now.toLocaleDateString("id-ID", { day: "2-digit", month: "2-digit", year: "numeric" }).split("/").join(".");
+    const jamStr = now.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
+    const namaLengkap = user?.namaLengkap ?? user?.email ?? "unknown";
+
+    // ── Helper: Header setiap halaman ──
+    const drawHeader = () => {
+      pdf.setFillColor(...primaryRGB);
+      pdf.rect(0, 0, pageW, 3.5, "F");
+
+      pdf.setTextColor(60);
+      pdf.setFontSize(16);
+      pdf.setFont("helvetica", "bold");
+      pdf.text("RKAP vs Realisasi", pageW / 2, margin + 2, { align: "center" });
+
+      pdf.setFontSize(9);
+      pdf.setFont("helvetica", "normal");
+      pdf.setTextColor(100);
+      pdf.text("PT. Prima Karya Manunggal", pageW / 2, margin + 9, { align: "center" });
+
+      pdf.setFontSize(8);
+      pdf.setTextColor(130);
+      pdf.text(`Periode: ${monthLabel} ${selectedYear}`, pageW / 2, margin + 15, { align: "center" });
+
+      pdf.setDrawColor(200);
+      pdf.setLineWidth(0.5);
+      pdf.line(margin, margin + 18.5, pageW - margin, margin + 18.5);
+    };
+
+    // ── Helper: Footer setiap halaman ──
+    const drawFooter = (pageNum: number) => {
+      const fy = pageH - 8;
+      pdf.setFontSize(6.5);
+      pdf.setFont("helvetica", "normal");
+      pdf.setTextColor(150);
+      pdf.text(`© 2026 RKAP Ready Mix — design by NUI6184`, margin, fy, { align: "left" });
+      pdf.text(`Hal. ${pageNum} dari ${totalPages}`, pageW / 2, fy, { align: "center" });
+      pdf.text(`Diekspor pada: ${tglStr} ${jamStr} — Oleh: ${namaLengkap}`, pageW - margin, fy, { align: "right" });
+    };
+
+    // ── Halaman 1 ──
+    drawHeader();
+    drawFooter(1);
+    totalPages = 1;
+    let y = margin + 22;
+
+    // ── Helper: Capture chart dengan html2canvas ──
+    const captureEl = async (id: string, maxW: number): Promise<{ img: string; h: number } | null> => {
+      const el = document.getElementById(id);
+      if (!el) return null;
+      try {
+        const canvas = await html2canvas(el, {
+          scale: 2,
+          useCORS: true,
+          backgroundColor: "#ffffff",
+          allowTaint: true,
+          logging: false,
+        });
+        const img = canvas.toDataURL("image/png");
+        const h = (canvas.height * maxW) / canvas.width;
+        return { img, h };
+      } catch {
+        return null;
+      }
+    };
+
+    // ── Chart Per Plant ──
+    const chPP = await captureEl("chart-per-plant", pageW - 2 * margin);
+    if (chPP) {
+      if (y + chPP.h > pageH - margin) { pdf.addPage(); y = margin + 5; drawHeader(); }
+      pdf.addImage(chPP.img, "PNG", margin, y, pageW - 2 * margin, chPP.h);
+      y += chPP.h + 6;
+    }
+
+    // ── Chart Total YTD ──
+    const chYTD = await captureEl("chart-total-ytd", pageW - 2 * margin);
+    if (chYTD) {
+      if (y + chYTD.h > pageH - margin) { pdf.addPage(); y = margin + 5; drawHeader(); }
+      pdf.addImage(chYTD.img, "PNG", margin, y, pageW - 2 * margin, chYTD.h);
+      y += chYTD.h + 6;
+    }
+
+    // ── Detail Table (autoTable) ──
+    if (y > pageH - 40) { pdf.addPage(); y = margin + 5; drawHeader(); }
+
+    // Judul tabel
+    pdf.setFontSize(10);
+    pdf.setFont("helvetica", "bold");
+    pdf.setTextColor(60);
+    pdf.text(`Detail Capaian Plant — ${monthLabel} ${selectedYear}`, margin, y);
+    y += 5;
+
+    const varianceTotalMonth = totalMonth.real - totalMonth.rkap;
+    const varianceTotalYTD = totalYTD.real - totalYTD.rkap;
+
+    autoTable(pdf, {
+      head: [
+        [
+          { content: "Plant", rowSpan: 2, styles: { halign: "center", fontStyle: "bold", fillColor: [252, 237, 224], textColor: primaryRGB } },
+          { content: monthLabel, colSpan: 4, styles: { halign: "center", fontStyle: "bold", fillColor: primaryRGB, textColor: 255 } },
+          { content: `s/d ${monthLabel}`, colSpan: 4, styles: { halign: "center", fontStyle: "bold", fillColor: primaryRGB, textColor: 255 } },
+        ],
+        [
+          { content: "RKAP" },
+          { content: "Realisasi" },
+          { content: "Variance" },
+          { content: "%" },
+          { content: "RKAP" },
+          { content: "Realisasi" },
+          { content: "Variance" },
+          { content: "%" },
+        ],
+      ],
+      body: monthlyData.map((d, i) => {
+        const ytd = ytdData[i];
+        const vColor: [number, number, number] = d.variance >= 0 ? [5, 150, 105] : [220, 38, 38];
+        const yvColor: [number, number, number] = ytd.variance >= 0 ? [5, 150, 105] : [220, 38, 38];
+        return [
+          d.plantName,
+          { content: formatCurrency(d.rkap), styles: { halign: "right" } },
+          { content: formatCurrency(d.real), styles: { halign: "right" } },
+          { content: `${d.variance >= 0 ? "+" : ""}${formatCurrency(d.variance)}`, styles: { halign: "right", textColor: vColor } },
+          { content: `${d.capaian}%`, styles: { halign: "right" } },
+          { content: formatCurrency(ytd.rkap), styles: { halign: "right" } },
+          { content: formatCurrency(ytd.real), styles: { halign: "right" } },
+          { content: `${ytd.variance >= 0 ? "+" : ""}${formatCurrency(ytd.variance)}`, styles: { halign: "right", textColor: yvColor } },
+          { content: `${ytd.capaian}%`, styles: { halign: "right" } },
+        ];
+      }),
+      foot: [
+        [
+          { content: "TOTAL", styles: { fontStyle: "bold", fillColor: [249, 250, 251] } },
+          { content: formatCurrency(totalMonth.rkap), styles: { halign: "right", fontStyle: "bold", fillColor: [249, 250, 251] } },
+          { content: formatCurrency(totalMonth.real), styles: { halign: "right", fontStyle: "bold", fillColor: [249, 250, 251] } },
+          {
+            content: `${varianceTotalMonth >= 0 ? "+" : ""}${formatCurrency(varianceTotalMonth)}`,
+            styles: { halign: "right", fontStyle: "bold", textColor: varianceTotalMonth >= 0 ? [5, 150, 105] : [220, 38, 38], fillColor: [249, 250, 251] },
+          },
+          { content: `${capaianBulan}%`, styles: { halign: "right", fontStyle: "bold", fillColor: [249, 250, 251] } },
+          { content: formatCurrency(totalYTD.rkap), styles: { halign: "right", fontStyle: "bold", fillColor: [249, 250, 251] } },
+          { content: formatCurrency(totalYTD.real), styles: { halign: "right", fontStyle: "bold", fillColor: [249, 250, 251] } },
+          {
+            content: `${varianceTotalYTD >= 0 ? "+" : ""}${formatCurrency(varianceTotalYTD)}`,
+            styles: { halign: "right", fontStyle: "bold", textColor: varianceTotalYTD >= 0 ? [5, 150, 105] : [220, 38, 38], fillColor: [249, 250, 251] },
+          },
+          { content: `${capaianYTD}%`, styles: { halign: "right", fontStyle: "bold", fillColor: [249, 250, 251] } },
+        ],
+      ],
+      startY: y + 2,
+      margin: { left: margin, right: margin },
+      tableWidth: "auto",
+      styles: {
+        fontSize: 7,
+        cellPadding: 2,
+        lineColor: [210, 210, 210],
+        lineWidth: 0.2,
+      },
+      headStyles: {
+        fontSize: 7,
+        halign: "right",
+      },
+      bodyStyles: {
+        textColor: 60,
+      },
+      alternateRowStyles: {
+        fillColor: [246, 246, 246],
+      },
+      didDrawPage: (data: any) => {
+        totalPages = pdf.getNumberOfPages();
+        drawFooter(data.pageNumber);
+      },
+    });
+
+    // Final pass: footer dengan total halaman benar
+    totalPages = pdf.getNumberOfPages();
+    for (let i = 1; i <= totalPages; i++) {
+      pdf.setPage(i);
+      drawFooter(i);
+    }
+
+    pdf.save(`Presentasi_RKAP_${monthLabel}_${selectedYear}.pdf`);
+    setShowCapture(false);
+  };
+
   if (loading) {
     return (
       <ProtectedRoute route="presentasi">
@@ -404,7 +610,7 @@ export default function PresentasiPage() {
 
   return (
     <ProtectedRoute route="presentasi">
-      <div className="p-4 sm:p-6 space-y-6">
+      <div ref={contentRef} className="p-4 sm:p-6 space-y-6">
         {/* ── Header ── */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
@@ -414,6 +620,14 @@ export default function PresentasiPage() {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            <button
+              onClick={exportPresentasiPDF}
+              disabled={showCapture}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-gradient-to-r from-[#F35b04] to-orange-700 text-white text-xs font-medium hover:from-[#F35b04] hover:to-orange-800 transition-all shadow-sm disabled:opacity-50"
+            >
+              <Download className="w-3.5 h-3.5" />
+              {showCapture ? "Memproses..." : "Presentasi"}
+            </button>
             <Calendar className="w-4 h-4 text-gray-400" />
             <select
               value={selectedMonth}
@@ -446,6 +660,11 @@ export default function PresentasiPage() {
           <div className="card p-4 border-l-4 border-l-emerald-500">
             <p className="text-[10px] sm:text-xs text-gray-500 font-medium">Realisasi {monthLabel}</p>
             <p className="text-sm sm:text-lg font-bold text-gray-900">{formatCurrency(totalMonth.real)} m³</p>
+            {showCapture && (
+              <p className="text-[10px] mt-0.5 font-medium" style={{ color: capaianBulan >= 100 ? "#059669" : capaianBulan >= 50 ? "#d97706" : "#dc2626" }}>
+                {capaianBulan}% dari RKAP
+              </p>
+            )}
           </div>
           <div className="card p-4 border-l-4 border-l-[#F35b04]">
             <p className="text-[10px] sm:text-xs text-gray-500 font-medium">RKAP s/d {monthLabel}</p>
@@ -454,13 +673,18 @@ export default function PresentasiPage() {
           <div className="card p-4 border-l-4 border-l-amber-500">
             <p className="text-[10px] sm:text-xs text-gray-500 font-medium">Realisasi s/d {monthLabel}</p>
             <p className="text-sm sm:text-lg font-bold text-gray-900">{formatCurrency(totalYTD.real)} m³</p>
+            {showCapture && (
+              <p className="text-[10px] mt-0.5 font-medium" style={{ color: capaianYTD >= 100 ? "#059669" : capaianYTD >= 50 ? "#d97706" : "#dc2626" }}>
+                {capaianYTD}% dari RKAP
+              </p>
+            )}
           </div>
         </div>
 
         {/* ── Charts ── */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Chart Per Plant */}
-          <div className="card">
+          <div id="chart-per-plant" className="card">
             <div className="card-header">
               <h3 className="text-sm font-semibold text-gray-900">RKAP vs Realisasi — Per Plant</h3>
               <p className="text-xs text-gray-500">{monthLabel} {selectedYear}</p>
@@ -485,7 +709,7 @@ export default function PresentasiPage() {
           </div>
 
           {/* Chart Total YTD */}
-          <div className="card">
+          <div id="chart-total-ytd" className="card">
             <div className="card-header">
               <h3 className="text-sm font-semibold text-gray-900">RKAP vs Realisasi — Total Semua Plant</h3>
               <p className="text-xs text-gray-500">s/d {monthLabel} {selectedYear}</p>

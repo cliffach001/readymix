@@ -1,8 +1,9 @@
 "use client";
 
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
-import { canAccess, ROLE_LABELS } from "@/lib/auth-config";
+import { canAccess } from "@/lib/auth-config";
 import type { RouteKey } from "@/lib/auth-types";
 import ErrorBoundary from "@/components/ErrorBoundary";
 
@@ -18,12 +19,17 @@ export default function ProtectedRoute({
   const { user } = useAuth();
   const router = useRouter();
 
+  // Hooks harus dipanggil sebelum early return (rules of hooks)
+  useEffect(() => {
+    if (user && !canAccess(user.role, route)) {
+      router.replace("/dashboard");
+    }
+  }, [user, user?.role, route, router]);
+
   // User null — biarkan ClientLayout menangani LoginScreen
   if (!user) return null;
 
-  // Role tidak punya akses — tampilkan halaman terlarang
   if (!canAccess(user.role, route)) {
-    const meta = ROLE_LABELS[user.role];
     return (
       <div className="flex items-center justify-center min-h-[60vh] p-6">
         <div className="text-center max-w-sm">
@@ -34,15 +40,8 @@ export default function ProtectedRoute({
             Akses Dibatasi
           </h2>
           <p className="mt-2 text-sm text-gray-500">
-            Role <strong>{meta.label}</strong> tidak memiliki izin untuk
-            mengakses halaman ini.
+            Mengalihkan ke dashboard...
           </p>
-          <button
-            onClick={() => router.push("/dashboard")}
-            className="mt-6 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#F35b04] to-orange-700 text-white text-sm font-medium hover:from-[#F35b04] hover:to-orange-800 transition-all shadow-sm"
-          >
-            Kembali ke Dashboard
-          </button>
         </div>
       </div>
     );
