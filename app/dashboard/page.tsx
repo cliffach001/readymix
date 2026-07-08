@@ -6,7 +6,7 @@ import Link from "next/link";
 import ProduksiHarianChart from "@/components/dashboard/ProduksiHarianChart";
 import ProduksiBulananChart from "@/components/dashboard/ProduksiBulananChart";
 import CapaianRKAPChart from "@/components/dashboard/CapaianRKAPChart";
-import { Factory, Calendar } from "lucide-react";
+import { Calendar } from "lucide-react";
 import { fetchRKAPBulanan, fetchVolumePerPlantBulanan, fetchPlants } from "@/lib/supabase-service";
 import type { PlantRow } from "@/lib/supabase-service";
 import ProtectedRoute from "@/components/ProtectedRoute";
@@ -34,7 +34,6 @@ function PlantCard({
       href={`/plant/${id}`}
       className="card p-5 flex items-center gap-4 border-l-4 border-l-[#F35b04] hover:shadow-md hover:border-l-[#e55a00] transition-all group"
     >
-      <Factory className="size-8 text-[#F35b04]" strokeWidth={1.5} />
       <div className="flex-1 min-w-0">
         <p className="text-sm text-gray-500 font-medium">{nama.replace("Ready Mix ", "")}</p>
         <p className="text-xl font-bold text-gray-900">
