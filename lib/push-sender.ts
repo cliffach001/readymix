@@ -14,6 +14,7 @@
 
 import webpush from "web-push";
 import { getSupabase } from "@/lib/supabase";
+import { logger } from "@/lib/logger";
 
 const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "";
 const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY ?? "";
@@ -39,7 +40,7 @@ interface PushPayload {
  */
 export async function sendPushToAll(payload: PushPayload) {
   if (!vapidPublicKey || !vapidPrivateKey) {
-    console.warn("[PushSender] VAPID keys not configured");
+    logger.warn("VAPID keys not configured", { tag: "PushSender" });
     return { sent: 0, failed: 0 };
   }
 
@@ -49,7 +50,7 @@ export async function sendPushToAll(payload: PushPayload) {
     .select("endpoint, p256dh, auth");
 
   if (error || !subscriptions?.length) {
-    console.warn("[PushSender] No subscriptions found");
+    logger.warn("No subscriptions found", { tag: "PushSender" });
     return { sent: 0, failed: 0 };
   }
 
@@ -89,7 +90,7 @@ export async function sendPushToUsername(
   payload: PushPayload
 ) {
   if (!vapidPublicKey || !vapidPrivateKey) {
-    console.warn("[PushSender] VAPID keys not configured");
+    logger.warn("VAPID keys not configured", { tag: "PushSender" });
     return { sent: 0, failed: 0 };
   }
 
@@ -100,7 +101,7 @@ export async function sendPushToUsername(
     .eq("username", username);
 
   if (error || !subscriptions?.length) {
-    console.warn(`[PushSender] No subscriptions found for username: ${username}`);
+    logger.warn(`No subscriptions found for username: ${username}`, { tag: "PushSender" });
     return { sent: 0, failed: 0 };
   }
 

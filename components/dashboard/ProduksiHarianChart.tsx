@@ -13,24 +13,8 @@ import {
 } from "recharts";
 import { fetchInputHarianBulanan } from "@/lib/supabase-service";
 import type { ProduksiHarianRow } from "@/lib/supabase-service";
-
-const COLORS = [
-  "#F35b04",
-  "#ef4444",
-  "#10b981",
-  "#f59e0b",
-  "#8b5cf6",
-  "#ec4899",
-];
-
-const PLANTS = [
-  { key: "pangkep", label: "Pangkep", color: COLORS[0] },
-  { key: "makassar", label: "Makassar", color: COLORS[1] },
-  { key: "pinrang", label: "Pinrang", color: COLORS[2] },
-  { key: "kendari", label: "Kendari", color: COLORS[3] },
-  { key: "toraja", label: "Toraja", color: COLORS[4] },
-  { key: "masamba", label: "Masamba", color: COLORS[5] },
-];
+import { filterPlants } from "@/lib/dashboard-constants";
+import { logger } from "@/lib/logger";
 
 interface Props {
   month: number;
@@ -42,11 +26,13 @@ export default function ProduksiHarianChart({ month, year, plantCode }: Props) {
   const [data, setData] = useState<ProduksiHarianRow[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const filteredPlants = filterPlants(plantCode);
+
   useEffect(() => {
     setLoading(true);
     fetchInputHarianBulanan(month, year)
       .then(setData)
-      .catch(console.error)
+      .catch((err) => logger.error("Gagal memuat produksi harian", { tag: "Dashboard" }))
       .finally(() => setLoading(false));
   }, [month, year]);
 
@@ -112,7 +98,7 @@ export default function ProduksiHarianChart({ month, year, plantCode }: Props) {
                 }}
               />
               <Legend wrapperStyle={{ fontSize: 12, paddingTop: 8 }} />
-              {(plantCode ? PLANTS.filter((p) => p.key === plantCode) : PLANTS).map((plant) => (
+              {filteredPlants.map((plant) => (
                 <Line
                   key={plant.key}
                   type="monotone"

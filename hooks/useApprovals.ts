@@ -12,6 +12,7 @@ import {
 } from "@/lib/supabase-service";
 import type { ApprovalRequestRecord, PasswordApprovalRecord } from "@/lib/supabase-service";
 import { useAuth } from "@/contexts/AuthContext";
+import { logger } from "@/lib/logger";
 
 /** Kirim push notification ke user */
 async function notifyUser(username: string, title: string, body: string, url?: string) {
@@ -90,7 +91,7 @@ export function useApprovals() {
       setPendingPasswords(pwdData);
       setError("");
     } catch (e) {
-      console.error("Gagal memuat notifikasi:", e);
+      logger.error("Gagal memuat notifikasi", { tag: "Approvals" });
       setError("Gagal memuat");
     } finally {
       setLoading(false);
@@ -105,7 +106,7 @@ export function useApprovals() {
       const data = await fetchApprovalRequestsByRequester(user.namaLengkap);
       setMyRequests(data);
     } catch (e) {
-      console.error("Gagal memuat status permintaan:", e);
+      logger.error("Gagal memuat status permintaan", { tag: "Approvals" });
     } finally {
       setMyRequestsLoading(false);
     }
@@ -151,7 +152,7 @@ export function useApprovals() {
           }
           return true;
         } catch (e) {
-          console.error("Gagal menyetujui password:", e);
+          logger.error("Gagal menyetujui password", { tag: "Approvals" });
           return false;
         }
       }
@@ -184,7 +185,7 @@ export function useApprovals() {
         }
         return true;
       } catch (e) {
-        console.error("Gagal menyetujui:", e);
+        logger.error("Gagal menyetujui permintaan", { tag: "Approvals" });
         return false;
       }
     },
@@ -210,7 +211,7 @@ export function useApprovals() {
           }
           return true;
         } catch (e) {
-          console.error("Gagal menolak password:", e);
+          logger.error("Gagal menolak password", { tag: "Approvals" });
           return false;
         }
       }
@@ -230,7 +231,7 @@ export function useApprovals() {
         }
         return true;
       } catch (e) {
-        console.error("Gagal menolak:", e);
+        logger.error("Gagal menolak permintaan", { tag: "Approvals" });
         return false;
       }
     },

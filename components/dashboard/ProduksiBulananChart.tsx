@@ -13,26 +13,8 @@ import {
 } from "recharts";
 import { fetchInputBulanan } from "@/lib/supabase-service";
 import type { ProduksiBulananRow } from "@/lib/supabase-service";
-
-const COLORS = [
-  "#F35b04",
-  "#ef4444",
-  "#10b981",
-  "#f59e0b",
-  "#8b5cf6",
-  "#ec4899",
-];
-
-const PLANTS = [
-  { key: "pangkep", label: "Pangkep", color: COLORS[0] },
-  { key: "makassar", label: "Makassar", color: COLORS[1] },
-  { key: "pinrang", label: "Pinrang", color: COLORS[2] },
-  { key: "kendari", label: "Kendari", color: COLORS[3] },
-  { key: "toraja", label: "Toraja", color: COLORS[4] },
-  { key: "masamba", label: "Masamba", color: COLORS[5] },
-];
-
-const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
+import { filterPlants, MONTH_NAMES } from "@/lib/dashboard-constants";
+import { logger } from "@/lib/logger";
 
 interface Props {
   month: number;
@@ -44,11 +26,13 @@ export default function ProduksiBulananChart({ month, year, plantCode }: Props) 
   const [allData, setAllData] = useState<ProduksiBulananRow[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const filteredPlants = filterPlants(plantCode);
+
   useEffect(() => {
     setLoading(true);
     fetchInputBulanan()
       .then(setAllData)
-      .catch(console.error)
+      .catch(() => logger.error("Gagal memuat produksi bulanan", { tag: "Dashboard" }))
       .finally(() => setLoading(false));
   }, []);
 
@@ -56,7 +40,7 @@ export default function ProduksiBulananChart({ month, year, plantCode }: Props) 
   const monthIndex = month - 1; // 0-based (Jan=0, Feb=1, ...)
   const chartData: ProduksiBulananRow[] = [];
   for (let i = 0; i <= monthIndex; i++) {
-    const bulan = MONTH_NAMES[i];
+    const bulan = MONTH_NAMES[i + 1]; // +1 karena MONTH_NAMES[0] = ""
     const existing = allData.find((r) => r.bulan === bulan);
     chartData.push(
       existing ?? {
@@ -91,7 +75,7 @@ export default function ProduksiBulananChart({ month, year, plantCode }: Props) 
           Produksi Bulanan {year}
         </h3>
         <p className="text-sm text-gray-500 mt-0.5">
-          Volume produksi per bulan — s.d. {MONTH_NAMES[month - 1]} {year}
+          Volume produksi per bulan — s.d. {MONTH_NAMES[month]} {year}
         </p>
       </div>
       <div className="card-body">
@@ -129,7 +113,7 @@ export default function ProduksiBulananChart({ month, year, plantCode }: Props) 
                 }}
               />
               <Legend wrapperStyle={{ fontSize: 12, paddingTop: 8 }} />
-              {(plantCode ? PLANTS.filter((p) => p.key === plantCode) : PLANTS).map((plant) => (
+              {filteredPlants.map((plant) => (
                 <Bar
                   key={plant.key}
                   dataKey={plant.key}

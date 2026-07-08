@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useBackgroundRefresh } from "@/lib/use-background-refresh";
+import { logger } from "@/lib/logger";
 import TabelProduksi from "@/components/laporan-mingguan/TabelProduksi";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import {
@@ -81,7 +82,7 @@ export default function LaporanMingguanPage() {
           setWeekInfo(null);
         }
       })
-      .catch(console.error);
+      .catch(() => logger.error("Gagal memuat laporan mingguan", { tag: "LaporanMingguan" }));
   }, [selectedMonth, selectedYear]);
 
   const filteredPlants: PlantRow[] =

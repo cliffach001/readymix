@@ -13,20 +13,7 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import { setFilterBulan } from "@/lib/filter-bulan";
 import { useAuth } from "@/contexts/AuthContext";
 
-const MONTHS = [
-  { num: 1, label: "Januari" },
-  { num: 2, label: "Februari" },
-  { num: 3, label: "Maret" },
-  { num: 4, label: "April" },
-  { num: 5, label: "Mei" },
-  { num: 6, label: "Juni" },
-  { num: 7, label: "Juli" },
-  { num: 8, label: "Agustus" },
-  { num: 9, label: "September" },
-  { num: 10, label: "Oktober" },
-  { num: 11, label: "November" },
-  { num: 12, label: "Desember" },
-];
+import { MONTHS } from "@/lib/dashboard-constants";
 
 const CURRENT_YEAR = new Date().getFullYear();
 const CURRENT_MONTH = new Date().getMonth() + 1;

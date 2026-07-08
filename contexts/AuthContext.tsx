@@ -14,9 +14,19 @@ import { STORAGE_KEY_AUTH } from "@/lib/auth-config";
 
 const CHECK_INTERVAL = 30 * 1000; // cek setiap 30 detik
 
-function getTimeoutByRole(_role: string | undefined): number {
-  // Semua role: 8 jam
-  return 8 * 60 * 60 * 1000;
+function getTimeoutByRole(role: string | undefined): number {
+  switch (role) {
+    case "admin":
+      return 4 * 60 * 60 * 1000;    // 4 jam — admin lebih sensitif
+    case "manager":
+      return 6 * 60 * 60 * 1000;    // 6 jam
+    case "marketing":
+      return 8 * 60 * 60 * 1000;    // 8 jam (input data)
+    case "viewer":
+      return 12 * 60 * 60 * 1000;   // 12 jam (hanya melihat)
+    default:
+      return 8 * 60 * 60 * 1000;
+  }
 }
 
 // ============================================================

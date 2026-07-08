@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, type ChangeEvent } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import { logger } from "@/lib/logger";
 import {
   fetchUserByUsername,
   updateUser,
@@ -76,7 +77,7 @@ export default function ProfilePage() {
         const data = await fetchUserByUsername(user.email);
         setProfile(data);
       } catch (err) {
-        console.error("Gagal memuat profil:", err);
+        logger.error("Gagal memuat profil", { tag: "Profile" });
       } finally {
         setLoading(false);
       }
@@ -170,7 +171,7 @@ export default function ProfilePage() {
         setEditSuccess(false);
       }, 1500);
     } catch (err: any) {
-      console.error("Edit profil error:", err);
+      logger.error("Edit profil gagal", { tag: "Profile" });
       setEditError(err?.message || "Gagal menyimpan profil");
     } finally {
       setSaving(false);
@@ -228,7 +229,7 @@ export default function ProfilePage() {
         }, 3000);
       }
     } catch (err) {
-      console.error(err);
+      logger.error("Reset password gagal", { tag: "Profile" });
       setResetError("Gagal mereset password");
     } finally {
       setResetting(false);

@@ -1,76 +1,46 @@
 "use client";
 
 import { Component, type ReactNode } from "react";
+import { logger } from "@/lib/logger";
 
 interface Props {
   children: ReactNode;
-  /** Label untuk membantu identifikasi error di console */
   name?: string;
 }
 
 interface State {
   hasError: boolean;
   error: Error | null;
-  countdown: number;
+  errorCount: number;
 }
 
-export default class ErrorBoundary extends Component<Props, State> {
-  private timer: ReturnType<typeof setInterval> | null = null;
+const MAX_RETRY = 3;
 
+export default class ErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
-    this.state = { hasError: false, error: null, countdown: 0 };
+    this.state = { hasError: false, error: null, errorCount: 0 };
   }
 
   static getDerivedStateFromError(error: Error): State {
-    return { hasError: true, error, countdown: 3 };
+    return { hasError: true, error, errorCount: 0 };
   }
 
   componentDidCatch(error: Error, info: { componentStack?: string }) {
-    console.error(`[ErrorBoundary${this.props.name ? `:${this.props.name}` : ""}]`, error.message, info.componentStack);
-    // Auto-retry after countdown
-    this.startAutoRetry();
-  }
-
-  componentDidUpdate(_prevProps: Props, prevState: State) {
-    // Reset countdown jika error baru
-    if (prevState.error !== this.state.error && this.state.hasError) {
-      this.startAutoRetry();
-    }
-  }
-
-  componentWillUnmount() {
-    this.clearTimer();
-  }
-
-  private startAutoRetry() {
-    this.clearTimer();
-    this.setState({ countdown: 3 });
-    this.timer = setInterval(() => {
-      this.setState((prev) => {
-        if (prev.countdown <= 1) {
-          this.clearTimer();
-          return { hasError: false, error: null, countdown: 0 } as State;
-        }
-        return { countdown: prev.countdown - 1 } as State;
-      });
-    }, 1000);
-  }
-
-  private clearTimer() {
-    if (this.timer) {
-      clearInterval(this.timer);
-      this.timer = null;
-    }
+    // Log error ke monitoring
+    logger.error(
+      `ErrorBoundary${this.props.name ? `:${this.props.name}` : ""}: ${error.message}, stack: ${info.componentStack || ""}`,
+      { tag: "ErrorBoundary" }
+    );
   }
 
   handleManualRetry = () => {
-    this.clearTimer();
-    this.setState({ hasError: false, error: null, countdown: 0 });
+    this.setState({ hasError: false, error: null, errorCount: 0 });
   };
 
   render() {
     if (this.state.hasError) {
+      const reachedMax = this.state.errorCount >= MAX_RETRY;
       return (
         <div className="min-h-[60vh] flex items-center justify-center p-6">
           <div className="text-center max-w-md">
@@ -92,27 +62,39 @@ export default class ErrorBoundary extends Component<Props, State> {
                 {this.state.error.message}
               </p>
             )}
-            <div className="flex items-center justify-center gap-3">
-              <button
-                onClick={this.handleManualRetry}
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#F35b04] to-orange-700 text-white text-sm font-medium hover:from-[#F35b04] hover:to-orange-800 transition-all shadow-sm"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-                Coba Lagi
-              </button>
-              <button
-                onClick={() => window.location.reload()}
-                className="px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
-              >
-                Refresh Halaman
-              </button>
-            </div>
-            {this.state.countdown > 0 && (
-              <p className="mt-3 text-xs text-gray-400">
-                Auto-retry dalam {this.state.countdown} detik...
-              </p>
+            {reachedMax ? (
+              <div className="space-y-3">
+                <p className="text-sm text-amber-600 font-medium">
+                  Sudah mencoba {MAX_RETRY}x dan masih gagal.
+                </p>
+                <button
+                  onClick={() => window.location.reload()}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#F35b04] to-orange-700 text-white text-sm font-medium hover:from-[#F35b04] hover:to-orange-800 transition-all shadow-sm"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  Refresh Halaman
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center justify-center gap-3">
+                <button
+                  onClick={this.handleManualRetry}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#F35b04] to-orange-700 text-white text-sm font-medium hover:from-[#F35b04] hover:to-orange-800 transition-all shadow-sm"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  Coba Lagi
+                </button>
+                <button
+                  onClick={() => window.location.reload()}
+                  className="px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+                >
+                  Refresh Halaman
+                </button>
+              </div>
             )}
           </div>
         </div>

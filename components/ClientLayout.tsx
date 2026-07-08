@@ -13,6 +13,7 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { ROLE_LABELS, getPlantName, getAccessibleRoutes } from "@/lib/auth-config";
 import type { RouteKey } from "@/lib/auth-types";
+import { logger } from "@/lib/logger";
 
 const menuItems = [
   { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -26,11 +27,11 @@ const menuItems = [
 function GlobalErrorHandler() {
   useEffect(() => {
     const handleError = (event: ErrorEvent) => {
-      console.warn("[GlobalErrorHandler]", event.error?.message || event.message);
+      logger.error("Error global terdeteksi", { tag: "GlobalError" });
       event.preventDefault();
     };
     const handleRejection = (event: PromiseRejectionEvent) => {
-      console.warn("[UnhandledRejection]", event.reason?.message || event.reason);
+      logger.error("Unhandled promise rejection", { tag: "UnhandledRejection" });
       event.preventDefault();
     };
 

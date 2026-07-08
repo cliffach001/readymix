@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Bell, BellOff, Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { logger } from "@/lib/logger";
 import {
   requestNotificationPermission,
   subscribeToPush,
@@ -63,7 +64,7 @@ export default function NotifToggle() {
         }
       }
     } catch (err) {
-      console.warn("[NotifToggle] Error:", err);
+      logger.error("Gagal toggle notifikasi", { tag: "NotifToggle" });
     } finally {
       setBusy(false);
     }

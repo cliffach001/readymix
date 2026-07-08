@@ -9,6 +9,7 @@ import {
   deleteInputData,
 } from "@/lib/supabase-service";
 import type { InputDataRecord } from "@/lib/supabase-service";
+import { logger } from "@/lib/logger";
 
 // Mapping DB fields ↔ app fields
 function dbToApp(rec: InputDataRecord): InputData {
@@ -62,7 +63,7 @@ export function useInputData(plantId: string) {
     setLoading(true);
     fetchInputData(plantId)
       .then((records) => setAllData(records.map(dbToApp)))
-      .catch(console.error)
+      .catch(() => logger.error("Gagal memuat data input", { tag: "InputData" }))
       .finally(() => setLoading(false));
   }, [plantId]);
 
@@ -156,7 +157,7 @@ export function useInputData(plantId: string) {
       resetForm();
       return true;
     } catch (e) {
-      console.error("Gagal menyimpan data:", e);
+      logger.error("Gagal menyimpan data", { tag: "InputData" });
       alert("Gagal menyimpan data ke database");
       return false;
     }
@@ -199,7 +200,7 @@ export function useInputData(plantId: string) {
         setAllData((prev) => prev.filter((d) => d.id !== id));
         if (editingId === id) resetForm();
       } catch (e) {
-        console.error("Gagal menghapus data:", e);
+        logger.error("Gagal menghapus data", { tag: "InputData" });
         alert("Gagal menghapus data");
       }
     },

@@ -2,6 +2,7 @@
  * Client-side helper untuk mengirim push notification ke admin
  * via API route. Dipanggil setelah approval request dibuat.
  */
+import { logger } from "./logger";
 
 interface NotifyPayload {
   title: string;
@@ -21,8 +22,8 @@ export async function notifyAdmin(payload: NotifyPayload) {
         tag: "rm-pocket-approval",
       }),
     });
-  } catch (err) {
+  } catch {
     // Silent fail — notifikasi tidak kritikal
-    console.warn("[NotifyAdmin] Gagal kirim push:", err);
+    logger.error("Gagal kirim notifikasi ke admin", { tag: "NotifyAdmin" });
   }
 }

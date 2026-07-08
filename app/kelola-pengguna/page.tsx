@@ -1,5 +1,7 @@
 "use client";
 
+import { logger } from "@/lib/logger";
+
 import { useState } from "react";
 import {
   fetchUsers,
@@ -113,7 +115,7 @@ export default function KelolaPenggunaPage() {
       resetForm();
       refresh();
     } catch (e) {
-      console.error(e);
+      logger.error("Gagal menyimpan pengguna", { tag: "KelolaPengguna" });
       alert("Gagal menyimpan data");
     } finally {
       setSaving(false);
@@ -126,7 +128,7 @@ export default function KelolaPenggunaPage() {
       await deleteUser(id);
       refresh();
     } catch (e) {
-      console.error(e);
+      logger.error("Gagal menghapus pengguna", { tag: "KelolaPengguna" });
       alert("Gagal menghapus data");
     }
   };
@@ -135,8 +137,8 @@ export default function KelolaPenggunaPage() {
     try {
       await updateUser(user.id, { active: !user.active });
       refresh();
-    } catch (e) {
-      console.error(e);
+    } catch  {
+      logger.error("Gagal toggle status pengguna", { tag: "KelolaPengguna" });
     }
   };
 

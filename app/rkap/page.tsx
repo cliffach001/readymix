@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { logger } from "@/lib/logger";
 import { useBackgroundRefresh } from "@/lib/use-background-refresh";
 import {
   fetchRKAPRecords,
@@ -131,7 +132,7 @@ export default function RKAPPage() {
       resetForm();
       refresh();
     } catch (e) {
-      console.error(e);
+      logger.error("Gagal menyimpan RKAP", { tag: "RKAP" });
       alert("Gagal menyimpan data");
     } finally {
       setSaving(false);
@@ -144,7 +145,7 @@ export default function RKAPPage() {
       await deleteRKAPRecord(id);
       refresh();
     } catch (e) {
-      console.error(e);
+      logger.error("Gagal menghapus RKAP", { tag: "RKAP" });
       alert("Gagal menghapus data");
     }
   };

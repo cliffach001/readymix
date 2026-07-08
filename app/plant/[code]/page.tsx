@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { logger } from "@/lib/logger";
 import { useParams, useRouter } from "next/navigation";
 import {
   fetchPlants,
@@ -116,7 +117,7 @@ export default function PlantDetailPage() {
         setRkapTarget(rkap);
       })
       .catch((err) => {
-        console.error(err);
+        logger.error("Gagal memuat data plant", { tag: "PlantPage" });
         setError("Gagal memuat data plant");
       })
       .finally(() => setLoading(false));
@@ -218,7 +219,7 @@ export default function PlantDetailPage() {
       setShowModal(false);
       loadData();
     } catch (e) {
-      console.error(e);
+      logger.error("Operasi gagal", { tag: "PlantPage" });
       alert("Gagal menyimpan data");
     } finally {
       setSaving(false);
@@ -269,7 +270,7 @@ export default function PlantDetailPage() {
         alert("Permintaan penghapusan telah dikirim ke Manager/Admin untuk disetujui");
         loadData();
       } catch (e) {
-        console.error(e);
+        logger.error("Operasi gagal", { tag: "PlantPage" });
         alert("Gagal mengirim permintaan penghapusan");
       }
       return;
@@ -282,7 +283,7 @@ export default function PlantDetailPage() {
       await deleteInputData(id);
       loadData();
     } catch (e) {
-      console.error(e);
+      logger.error("Operasi gagal", { tag: "PlantPage" });
       alert("Gagal menghapus data");
     }
   };
@@ -353,7 +354,7 @@ export default function PlantDetailPage() {
       setPendingRowId(null);
       loadData();
     } catch (e) {
-      console.error(e);
+      logger.error("Operasi gagal", { tag: "PlantPage" });
       alert("Gagal menyimpan data");
     }
   };
@@ -1081,37 +1082,37 @@ export default function PlantDetailPage() {
                 </p>
                 <div className="flex items-center gap-1">
                   <button
+                    onClick={() => setCurrentPage(1)}
+                    disabled={currentPage === 1 || editingRowId !== null}
+                    className="px-2.5 py-1.5 rounded-lg text-xs font-medium border border-gray-200 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-50 transition-all"
+                    title="Halaman pertama"
+                  >
+                    «
+                  </button>
+                  <button
                     onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                     disabled={currentPage === 1 || editingRowId !== null}
                     className="px-2.5 py-1.5 rounded-lg text-xs font-medium border border-gray-200 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-50 transition-all"
                   >
                     Prev
                   </button>
-                  {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
-                    const startPage = Math.max(1, currentPage - 2);
-                    const page = startPage + i;
-                    if (page > totalPages) return null;
-                    return (
-                      <button
-                        key={page}
-                        onClick={() => setCurrentPage(page)}
-                        disabled={editingRowId !== null}
-                        className={`px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-all ${
-                          page === currentPage
-                            ? "bg-gradient-to-r from-[#F35b04] to-orange-700 text-white border-[#F35b04]"
-                            : "border-gray-200 hover:bg-gray-50"
-                        } disabled:opacity-30 disabled:cursor-not-allowed`}
-                      >
-                        {page}
-                      </button>
-                    );
-                  })}
+                  <span className="text-xs text-gray-400 mx-1">
+                    {currentPage}/{totalPages}
+                  </span>
                   <button
                     onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                     disabled={currentPage === totalPages || editingRowId !== null}
                     className="px-2.5 py-1.5 rounded-lg text-xs font-medium border border-gray-200 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-50 transition-all"
                   >
                     Next
+                  </button>
+                  <button
+                    onClick={() => setCurrentPage(totalPages)}
+                    disabled={currentPage === totalPages || editingRowId !== null}
+                    className="px-2.5 py-1.5 rounded-lg text-xs font-medium border border-gray-200 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-50 transition-all"
+                    title="Halaman terakhir"
+                  >
+                    »
                   </button>
                 </div>
               </div>

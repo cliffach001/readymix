@@ -3,29 +3,18 @@
 import { useState, useEffect } from "react";
 import { fetchRKAPKumulatif } from "@/lib/supabase-service";
 import type { RKAPRow } from "@/lib/supabase-service";
-
-const COLORS = [
-  { bar: "bg-[#F35b04]", text: "text-[#F35b04]", bg: "bg-orange-100" },
-  { bar: "bg-red-500", text: "text-red-700", bg: "bg-red-100" },
-  { bar: "bg-emerald-500", text: "text-emerald-700", bg: "bg-emerald-100" },
-  { bar: "bg-amber-500", text: "text-amber-700", bg: "bg-amber-100" },
-  { bar: "bg-violet-500", text: "text-violet-700", bg: "bg-violet-100" },
-  { bar: "bg-pink-500", text: "text-pink-700", bg: "bg-pink-100" },
-];
-
-const MONTH_NAMES = [
-  "", "Jan", "Feb", "Mar", "Apr", "Mei", "Jun",
-  "Jul", "Agu", "Sep", "Okt", "Nov", "Des",
-];
+import { PLANT_COLORS, MONTH_NAMES } from "@/lib/dashboard-constants";
+import { logger } from "@/lib/logger";
 
 function ProgressBar({
   value,
-  color,
+  colorIndex,
 }: {
   value: number;
-  color: (typeof COLORS)[number];
+  colorIndex: number;
 }) {
   const clamped = Math.min(value, 100);
+  const color = PLANT_COLORS[colorIndex % PLANT_COLORS.length];
 
   return (
     <div className="w-full bg-gray-100 rounded-full h-3 overflow-hidden">
@@ -51,9 +40,14 @@ export default function CapaianRKAPChart({ year, month, plantCode }: Props) {
     setLoading(true);
     fetchRKAPKumulatif(year, month)
       .then(setData)
-      .catch(console.error)
+      .catch(() => logger.error("Gagal memuat capaian RKAP", { tag: "Dashboard" }))
       .finally(() => setLoading(false));
   }, [year, month]);
+
+  // Filter data jika plantCode diberikan
+  const filteredData = plantCode
+    ? data.filter((d) => d.plant.toLowerCase().includes(plantCode.toLowerCase()))
+    : data;
 
   if (loading) {
     return (
@@ -81,8 +75,8 @@ export default function CapaianRKAPChart({ year, month, plantCode }: Props) {
         </p>
       </div>
       <div className="card-body space-y-6">
-        {(plantCode ? data.filter((d) => d.plant === plantCode) : data).map((item, index) => {
-          const color = COLORS[index % COLORS.length];
+        {filteredData.map((item, index) => {
+          const color = PLANT_COLORS[index % PLANT_COLORS.length];
           const remaining = item.target - item.realisasi;
           const remainingFormatted =
             remaining > 0
@@ -102,7 +96,7 @@ export default function CapaianRKAPChart({ year, month, plantCode }: Props) {
                 </span>
               </div>
 
-              <ProgressBar value={item.persentase} color={color} />
+              <ProgressBar value={item.persentase} colorIndex={index} />
 
               <div className="flex justify-between text-xs text-gray-500 pt-0.5">
                 <span>

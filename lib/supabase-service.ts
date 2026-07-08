@@ -1,5 +1,6 @@
 import { getSupabase } from "./supabase";
 import type { LaporanMingguan } from "./data";
+import { logger } from "./logger";
 
 // ============================================================
 // Types (sama dengan data.ts untuk kompatibilitas)
@@ -533,9 +534,9 @@ export async function uploadAvatar(
     }
 
     // Jika bucket belum ada, fallback ke base64
-    console.warn("Supabase Storage gagal, fallback ke base64:", uploadError.message);
+    logger.warn("Supabase Storage gagal, fallback ke base64", { tag: "SupabaseService" });
   } catch (e) {
-    console.warn("Supabase Storage tidak tersedia, fallback ke base64:", e);
+    logger.error("Supabase Storage tidak tersedia, fallback ke base64", { tag: "SupabaseService" });
   }
 
   // 3. Fallback: simpan sebagai base64 data URL
@@ -549,8 +550,13 @@ export async function uploadAvatar(
 function compressImage(file: File, maxDimension: number): Promise<Blob> {
   return new Promise((resolve, reject) => {
     const img = new Image();
+    let objectUrl: string | null = null;
+
     img.onload = () => {
-      URL.revokeObjectURL(img.src);
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+        objectUrl = null;
+      }
 
       let { width, height } = img;
       if (width > maxDimension || height > maxDimension) {
@@ -575,11 +581,17 @@ function compressImage(file: File, maxDimension: number): Promise<Blob> {
         0.88
       );
     };
+
     img.onerror = () => {
-      URL.revokeObjectURL(img.src);
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+        objectUrl = null;
+      }
       reject(new Error("Gagal membaca gambar"));
     };
-    img.src = URL.createObjectURL(file);
+
+    objectUrl = URL.createObjectURL(file);
+    img.src = objectUrl;
   });
 }
 
