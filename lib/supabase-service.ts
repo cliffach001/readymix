@@ -3,6 +3,17 @@ import type { LaporanMingguan } from "./data";
 import { logger } from "./logger";
 
 // ============================================================
+// Minimal type-safe helper untuk Supabase queries
+// Fokus: readability & maintainability, bukan type perfection
+// ============================================================
+
+/** @deprecated Gunakan generated types dari `npx supabase gen types` */
+function tbl(name: string) {
+  return getSupabase().from(name) as any;
+}
+
+
+// ============================================================
 // Types (sama dengan data.ts untuk kompatibilitas)
 // ============================================================
 
