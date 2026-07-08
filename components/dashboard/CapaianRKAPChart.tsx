@@ -3,8 +3,37 @@
 import { useState, useEffect } from "react";
 import { fetchRKAPKumulatif } from "@/lib/supabase-service";
 import type { RKAPRow } from "@/lib/supabase-service";
-import { PLANT_COLORS, MONTH_NAMES } from "@/lib/dashboard-constants";
+import { MONTH_NAMES } from "@/lib/dashboard-constants";
 import { logger } from "@/lib/logger";
+
+// Warna progress bar — menggunakan HEX inline style
+const BAR_COLORS = [
+  "#F35b04", // orange-500
+  "#ef4444", // red-500
+  "#10b981", //-emerald-500
+  "#f59e0b", // amber-500
+  "#8b5cf6", // violet-500
+  "#ec4899", // pink-500
+];
+
+// Warna badge — menggunakan HEX inline style
+const BADGE_BG_COLORS = [
+  "#ff7a2b", // orange-300
+  "#fca5a5", // red-300
+  "#6ee7b7", // emerald-300
+  "#fcd34d", // amber-300
+  "#c4b5fd", // violet-300
+  "#f9a8d4", // pnk-300
+];
+
+const BADGE_TEXT_COLORS = [
+  "#9a3412", // orange-800
+  "#991b1b", // red-800
+  "#065f46", // emerald-800
+  "#92400e", // amber-800
+  "#5b21b6", // violet-800
+  "#86198f", // pink-800
+];
 
 function ProgressBar({
   value,
@@ -14,13 +43,13 @@ function ProgressBar({
   colorIndex: number;
 }) {
   const clamped = Math.min(value, 100);
-  const color = PLANT_COLORS[colorIndex % PLANT_COLORS.length];
+  const barColor = BAR_COLORS[colorIndex % BAR_COLORS.length];
 
   return (
     <div className="w-full bg-gray-100 rounded-full h-3 overflow-hidden">
       <div
-        className={`h-full rounded-full transition-all duration-700 ease-out ${color.bar}`}
-        style={{ width: `${clamped}%` }}
+        className="h-full rounded-full transition-all duration-700 ease-out"
+        style={{ width: `${clamped}%`, backgroundColor: barColor }}
       />
     </div>
   );
@@ -29,10 +58,9 @@ function ProgressBar({
 interface Props {
   year: number;
   month: number;
-  plantCode?: string;
 }
 
-export default function CapaianRKAPChart({ year, month, plantCode }: Props) {
+export default function CapaianRKAPChart({ year, month }: Props) {
   const [data, setData] = useState<RKAPRow[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -43,11 +71,6 @@ export default function CapaianRKAPChart({ year, month, plantCode }: Props) {
       .catch(() => logger.error("Gagal memuat capaian RKAP", { tag: "Dashboard" }))
       .finally(() => setLoading(false));
   }, [year, month]);
-
-  // Filter data jika plantCode diberikan
-  const filteredData = plantCode
-    ? data.filter((d) => d.plant.toLowerCase().includes(plantCode.toLowerCase()))
-    : data;
 
   if (loading) {
     return (
@@ -75,8 +98,9 @@ export default function CapaianRKAPChart({ year, month, plantCode }: Props) {
         </p>
       </div>
       <div className="card-body space-y-6">
-        {filteredData.map((item, index) => {
-          const color = PLANT_COLORS[index % PLANT_COLORS.length];
+        {data.map((item, index) => {
+          const badgeBg = BADGE_BG_COLORS[index % BADGE_BG_COLORS.length];
+          const badgeText = BADGE_TEXT_COLORS[index % BADGE_TEXT_COLORS.length];
           const remaining = item.target - item.realisasi;
           const remainingFormatted =
             remaining > 0
@@ -90,7 +114,8 @@ export default function CapaianRKAPChart({ year, month, plantCode }: Props) {
                   {item.plant}
                 </span>
                 <span
-                  className={`text-xs font-semibold px-2 py-0.5 rounded-full ${color.bg} ${color.text}`}
+                  className="text-xs font-semibold px-2 py-0.5 rounded-full"
+                  style={{ backgroundColor: badgeBg, color: badgeText }}
                 >
                   {item.persentase}%
                 </span>
