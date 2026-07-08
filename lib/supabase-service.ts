@@ -244,9 +244,14 @@ export async function fetchRKAP(): Promise<RKAPRow[]> {
   return (plants ?? []).map((p) => {
     const target = targetMap.get(p.code) ?? 0;
     const realisasi = realisasiMap.get(p.code) ?? 0;
-    const persentase = target > 0
-      ? Math.round((realisasi / target) * 100 * 10) / 10
-      : 0;
+    let persentase: number;
+    if (target > 0) {
+      persentase = Math.round((realisasi / target) * 100 * 10) / 10;
+    } else if (realisasi > 0) {
+      persentase = 100;
+    } else {
+      persentase = 0;
+    }
 
     return {
       plant: p.name,
@@ -1137,8 +1142,14 @@ export async function fetchRKAPKumulatif(
   return (plants ?? []).map((p) => {
     const target = targetMap[p.code] ?? 0;
     const realisasi = realisasiMap[p.code] ?? 0;
-    const persentase =
-      target > 0 ? Math.round((realisasi / target) * 100 * 10) / 10 : 0;
+    let persentase: number;
+    if (target > 0) {
+      persentase = Math.round((realisasi / target) * 100 * 10) / 10;
+    } else if (realisasi > 0) {
+      persentase = 100;
+    } else {
+      persentase = 0;
+    }
     return { plant: p.name, target, realisasi, persentase };
   });
 }
